@@ -9,7 +9,6 @@ public class PassengerAI : MonoBehaviour
     public State currentState = State.Boarding;
 
     [Header("การตั้งค่า")]
-    public float interactDistance = 3.0f;
     public bool hasPaid = false;
 
     [Header("Animation Settings")]
@@ -19,9 +18,9 @@ public class PassengerAI : MonoBehaviour
     [Header("Component ที่ต้องใส่")]
     public NavMeshAgent agent;
     public Animator animator;
-    public GameObject interactTextUI;
+    // public GameObject interactTextUI; // ย้ายไปให้ Player จัดการแทน
 
-    [Header("ตำแหน่งมือ (อยู่ใน Prefab)")]
+    [Header("ตำแหน่งมือ")]
     public Transform handPosStand;
     public Transform handPosSitL;
     public Transform handPosSitR;
@@ -35,14 +34,15 @@ public class PassengerAI : MonoBehaviour
     [Header("Events")]
     public Action onExitBus;
 
-    private Transform playerTransform;
     private FareSystem fareSystem;
     private bool isProcessingPayment = false;
 
+    // ตั้งฝั่งซ้าย/ขวา จากชื่อจุดนั่ง
     public void SetSeat(Transform seatPoint)
     {
         mySeatPoint = seatPoint;
-        if (seatPoint.position.x > 0)
+
+        if (seatPoint.name.Contains("Sit_R") || seatPoint.name.Contains("_R"))
             isRightSide = true;
         else
             isRightSide = false;
@@ -52,11 +52,6 @@ public class PassengerAI : MonoBehaviour
 
     void Start()
     {
-        Debug.Log($"🔥 {gameObject.name} Start() called");
-
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null) playerTransform = player.transform;
-
         fareSystem = FindObjectOfType<FareSystem>();
         if (fareSystem == null)
         {
@@ -69,7 +64,6 @@ public class PassengerAI : MonoBehaviour
             agent.updatePosition = true;
             agent.autoBraking = true;
             agent.stoppingDistance = 0.3f;
-            Debug.Log($"✅ {gameObject.name} NavMesh Agent configured");
         }
         else
         {
@@ -85,7 +79,17 @@ public class PassengerAI : MonoBehaviour
     void Update()
     {
         UpdateAnimationSpeed();
-        CheckInteraction();
+        // ไม่ต้อง CheckInteraction อีกต่อไป ให้ Player เป็นคนเรียก Interact()
+    }
+
+    // ฟังก์ชันให้ Player เรียกตอนกด E ใส่ NPC
+    public void Interact()
+    {
+        // ถ้าจ่ายแล้ว หรือกำลังจ่ายอยู่ หรือยังไม่อยู่สถานะรอเก็บเงิน ก็ไม่ทำอะไร
+        if (hasPaid || isProcessingPayment || currentState != State.WaitingForFare) return;
+
+        isProcessingPayment = true;
+        StartCoroutine(PayRoutine());
     }
 
     void UpdateAnimationSpeed()
@@ -129,7 +133,6 @@ public class PassengerAI : MonoBehaviour
         float timeout = 10f;
         float elapsed = 0f;
 
-        // รอให้คำนวณ path เสร็จ
         while (agent.pathPending)
         {
             yield return null;
@@ -141,22 +144,13 @@ public class PassengerAI : MonoBehaviour
             }
         }
 
-        // ✅ ให้เดินในโหมดปกติ
         animator.SetBool("isSitting", false);
         Debug.Log($"🚶 {gameObject.name} Walking to seat...");
 
         elapsed = 0f;
-        float lastLogTime = 0f;
 
-        // เดินไปจนใกล้ที่นั่ง
         while (agent.remainingDistance > 0.5f)
         {
-            if (elapsed - lastLogTime >= 0.5f)
-            {
-                Debug.Log($"📍 {gameObject.name} Distance: {agent.remainingDistance:F2}");
-                lastLogTime = elapsed;
-            }
-
             yield return null;
             elapsed += Time.deltaTime;
 
@@ -169,39 +163,26 @@ public class PassengerAI : MonoBehaviour
 
         Debug.Log($"🎯 {gameObject.name} Reached seat area");
 
-        // หยุดเดิน
         agent.isStopped = true;
         agent.velocity = Vector3.zero;
 
-        // ✅ ปล่อยให้ UpdateAnimationSpeed ค่อยๆ ลด Speed ลง
-        // รอให้ Animation เข้าสู่ Idle State (ประมาณ 0.3-0.5 วินาที)
         yield return new WaitForSeconds(0.5f);
 
-        // ❌ ไม่วาร์ปแล้ว (ยกเลิกการเซ็ต position/rotation ตรงๆ)
-        // ✅ ให้หมุนหน้าอย่างเดียวแบบ Smooth
         if (mySeatPoint != null)
         {
             StartCoroutine(RotateTowards(mySeatPoint.rotation));
         }
 
-        // ✅ ตอนนี้อยู่ใน Idle State แล้ว → ยิง isSitting ได้เลย
         if (isSittingSeat)
         {
             Debug.Log($"💺 {gameObject.name} Set isSitting = true");
             animator.SetBool("isSitting", true);
-
-            // รอให้ Animation นั่งเสร็จ (Stand To Sit + Sitting Idle)
             yield return new WaitForSeconds(2.5f);
 
-            // ปิด NavMeshAgent เพื่อไม่ให้รบกวน
-            if (agent != null)
-            {
-                agent.enabled = false;
-            }
+            if (agent != null) agent.enabled = false;
         }
         else
         {
-            // ถ้าเป็นที่ยืน
             animator.SetBool("isSitting", false);
             animator.SetTrigger("trigStand");
         }
@@ -210,7 +191,6 @@ public class PassengerAI : MonoBehaviour
         Debug.Log($"✅ {gameObject.name} Ready for payment!");
     }
 
-    // ✅ ฟังก์ชันหมุนแบบ Smooth
     IEnumerator RotateTowards(Quaternion targetRotation)
     {
         float duration = 0.5f;
@@ -223,38 +203,15 @@ public class PassengerAI : MonoBehaviour
             elapsed += Time.deltaTime;
             yield return null;
         }
-
         transform.rotation = targetRotation;
-    }
-
-    void CheckInteraction()
-    {
-        if (currentState != State.WaitingForFare || hasPaid) return;
-        if (playerTransform == null) return;
-
-        float dist = Vector3.Distance(transform.position, playerTransform.position);
-
-        if (dist <= interactDistance)
-        {
-            if (interactTextUI != null) interactTextUI.SetActive(true);
-
-            if (Input.GetKeyDown(KeyCode.E) && !isProcessingPayment)
-            {
-                isProcessingPayment = true;
-                StartCoroutine(PayRoutine());
-            }
-        }
-        else
-        {
-            if (interactTextUI != null) interactTextUI.SetActive(false);
-        }
     }
 
     IEnumerator PayRoutine()
     {
         Debug.Log($"💰 {gameObject.name} Starting payment");
         currentState = State.Paying;
-        if (interactTextUI != null) interactTextUI.SetActive(false);
+
+        // UI InteractText ให้ Player ไปซ่อน/โชว์เอง
 
         if (fareSystem != null)
         {
@@ -311,7 +268,7 @@ public class PassengerAI : MonoBehaviour
 
         if (isSittingSeat)
         {
-            animator.SetBool("isSitting", false);   // ปิดโหมดนั่งก่อน
+            animator.SetBool("isSitting", false);
             yield return new WaitForSeconds(2.0f);
 
             if (agent != null)

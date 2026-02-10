@@ -9,10 +9,9 @@ public class BusStopManager : MonoBehaviour
     public Transform exitPoint;
 
     [Header("Points")]
-    public Transform[] seatPoints;  // จุดนั่ง
-    public Transform[] standPoints; // จุดยืน (เพิ่มอันนี้)
+    public Transform[] seatPoints;
+    public Transform[] standPoints;
 
-    // ตัวเก็บว่าตรงไหนมีคนอยู่แล้ว
     private HashSet<Transform> occupiedSeats = new HashSet<Transform>();
     private HashSet<Transform> occupiedStandPoints = new HashSet<Transform>();
 
@@ -20,114 +19,90 @@ public class BusStopManager : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.K))
         {
-            int seatsFree = seatPoints.Length - occupiedSeats.Count;
-            int standsFree = standPoints.Length - occupiedStandPoints.Count;
-            Debug.Log($"📊 สถานะ: นั่งว่าง {seatsFree} | ยืนว่าง {standsFree}");
-
             SpawnPassenger();
         }
     }
 
     public void SpawnPassenger()
     {
-        if (passengerPrefab == null) { Debug.LogError("❌ Passenger Prefab เป็น None!"); return; }
+        if (passengerPrefab == null || spawnPoint == null) return;
 
-        // 1. หาที่นั่งก่อน
+        // 1. หาที่นั่ง/ยืน
         Transform targetPoint = GetAvailableSeat();
         bool isSitting = true;
 
-        // 2. ถ้าที่นั่งเต็ม -> ไปหาที่ยืนแทน
         if (targetPoint == null)
         {
             targetPoint = GetAvailableStandPoint();
-            isSitting = false; // บอกว่าเป็นท่ายืนนะ
+            isSitting = false;
         }
 
-        // 3. ถ้าทั้งนั่งและยืนเต็มหมด -> จบข่าว
-        if (targetPoint == null)
-        {
-            Debug.LogWarning("⚠️ รถเต็มแล้ว! (ไม่มีที่นั่งและที่ยืน)");
-            return;
-        }
+        if (targetPoint == null) return; // รถเต็มทั้งนั่งและยืน
 
-        // --- เริ่มสร้างตัวละคร ---
+        // 2. สร้างตัวละคร
         GameObject p = Instantiate(passengerPrefab, spawnPoint.position, Quaternion.identity);
         PassengerAI ai = p.GetComponent<PassengerAI>();
 
-        if (ai == null)
+        if (ai != null)
         {
-            Debug.LogError("❌ Passenger Prefab ไม่มี PassengerAI Script!");
-            Destroy(p);
-            return;
-        }
+            // ไม่ต้องมี ai.interactTextUI แล้ว
+            ai.SetSeat(targetPoint);
+            ai.exitPoint = exitPoint;
+            ai.isSittingSeat = isSitting;
 
-        // ส่งข้อมูลให้ AI
-        ai.SetSeat(targetPoint); // ส่งตำแหน่งเป้าหมาย (ไม่ว่าจะนั่งหรือยืน)
-        ai.exitPoint = exitPoint;
-        ai.isSittingSeat = isSitting; // *** สำคัญ: บอก AI ว่าต้องนั่งหรือยืน ***
-
-        // จองที่
-        if (isSitting)
-        {
-            occupiedSeats.Add(targetPoint);
-            // ถ้าเป็นคนนั่ง -> ตอนลงรถให้คืนที่นั่ง
-            ai.onExitBus += () => FreeSeat(targetPoint);
+            // Subscribe event คืนที่นั่ง/จุดยืน
+            if (isSitting)
+            {
+                occupiedSeats.Add(targetPoint);
+                ai.onExitBus += () => FreeSeat(targetPoint);
+            }
+            else
+            {
+                occupiedStandPoints.Add(targetPoint);
+                ai.onExitBus += () => FreeStandPoint(targetPoint);
+            }
         }
-        else
-        {
-            occupiedStandPoints.Add(targetPoint);
-            // ถ้าเป็นคนยืน -> ตอนลงรถให้คืนที่ยืน
-            ai.onExitBus += () => FreeStandPoint(targetPoint);
-        }
-
-        Debug.Log($"✅ ผู้โดยสารใหม่: {(isSitting ? "นั่ง" : "ยืน")} ที่ {targetPoint.name}");
     }
 
-    // ฟังก์ชันหาที่นั่งว่าง (สุ่ม)
     Transform GetAvailableSeat()
     {
+        if (seatPoints == null || seatPoints.Length == 0) return null;
+
         List<Transform> available = new List<Transform>();
         foreach (Transform t in seatPoints)
         {
-            if (!occupiedSeats.Contains(t)) available.Add(t);
+            if (t != null && !occupiedSeats.Contains(t))
+                available.Add(t);
         }
 
         if (available.Count == 0) return null;
-        return available[UnityEngine.Random.Range(0, available.Count)];
+        return available[Random.Range(0, available.Count)];
     }
 
-    // ฟังก์ชันหาที่ยืนว่าง (สุ่ม) - เพิ่มใหม่
     Transform GetAvailableStandPoint()
     {
-        if (standPoints == null) return null;
+        if (standPoints == null || standPoints.Length == 0) return null;
 
         List<Transform> available = new List<Transform>();
         foreach (Transform t in standPoints)
         {
-            if (!occupiedStandPoints.Contains(t)) available.Add(t);
+            if (t != null && !occupiedStandPoints.Contains(t))
+                available.Add(t);
         }
 
         if (available.Count == 0) return null;
-        return available[UnityEngine.Random.Range(0, available.Count)];
+        return available[Random.Range(0, available.Count)];
     }
 
-    // คืนที่นั่ง
     public void FreeSeat(Transform seat)
     {
-        if (occupiedSeats.Contains(seat))
-        {
+        if (seat != null && occupiedSeats.Contains(seat))
             occupiedSeats.Remove(seat);
-            Debug.Log($"🪑 ที่นั่ง {seat.name} ว่างแล้ว");
-        }
     }
 
-    // คืนที่ยืน - เพิ่มใหม่
     public void FreeStandPoint(Transform spot)
     {
-        if (occupiedStandPoints.Contains(spot))
-        {
+        if (spot != null && occupiedStandPoints.Contains(spot))
             occupiedStandPoints.Remove(spot);
-            Debug.Log($"👣 จุดยืน {spot.name} ว่างแล้ว");
-        }
     }
 }

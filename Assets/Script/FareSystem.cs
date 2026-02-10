@@ -24,6 +24,10 @@ public class FareSystem : MonoBehaviour
     public NPCSpawner npcSpawner;
     public Animator npcAnimator;
 
+    [Header("ตำแหน่งมือ (นั่งซ้าย/ขวา)")]
+    public Transform handPosSitL;
+    public Transform handPosSitR;
+
     [Header("เสียงเอฟเฟกต์")]
     public AudioSource audioSource;
     public AudioClip sfxCoin;
@@ -42,37 +46,39 @@ public class FareSystem : MonoBehaviour
 
     public void StartTransaction(PassengerAI passenger)
     {
+        // 1. เก็บตัว NPC ไว้
         currentPassenger = passenger;
         npcAnimator = passenger.animator;
 
+        // 2. ตั้งค่าตั๋ว/ราคา
         if (currentTicket == null)
             currentTicket = ScriptableObject.CreateInstance<TicketData>();
-
         currentTicket.price = 20;
 
+        // 3. รีเซ็ตค่าเงิน
         moneyReceived = 0;
         currentChange = 0;
         isTransactionActive = true;
 
-        if (uiPanel != null) uiPanel.SetActive(false);
-
-        // เช็คท่าทางของผู้โดยสาร
+        // 4. เช็คท่าทาง (ห้ามมีบรรทัดสั่ง transform.position)
         if (!passenger.isSittingSeat)
         {
-            currentPoseState = 0;
+            currentPoseState = 0; // ยืน
             StartCoroutine(StandThenPayRoutine());
         }
-        else if (!passenger.isRightSide)
+        else if (!passenger.isRightSide) // นั่งซ้าย
         {
             currentPoseState = 1;
-            StartCoroutine(SitThenPayRoutine("trigSitGiveL"));
+            StartCoroutine(SitThenPayRoutine("trigSitGiveL", handPosSitL));
         }
-        else
+        else // นั่งขวา
         {
             currentPoseState = 2;
-            StartCoroutine(SitThenPayRoutine("trigSitGiveR"));
+            StartCoroutine(SitThenPayRoutine("trigSitGiveR", handPosSitR));
         }
 
+        // 5. ตั้งค่า UI
+        if (uiPanel != null) uiPanel.SetActive(false);
         textPrice.color = Color.black;
         textPrice.text = "ค่ารถ: " + currentTicket.price + " บาท";
 
@@ -84,17 +90,14 @@ public class FareSystem : MonoBehaviour
     {
         yield return new WaitForSeconds(0.1f);
 
-        // สั่ง Animation ยื่นเงิน (ยืน)
         if (npcAnimator != null)
         {
             npcAnimator.SetTrigger("trigStandGive");
             Debug.Log("💰 Triggered: trigStandGive");
         }
 
-        // รอให้มือยื่นออกมา
         yield return new WaitForSeconds(0.5f);
 
-        // ใช้ตำแหน่งมือจาก NPC โดยตรง
         if (npcSpawner != null && currentPassenger != null)
         {
             Transform handPos = currentPassenger.GetHandPosition();
@@ -107,24 +110,22 @@ public class FareSystem : MonoBehaviour
         }
     }
 
-    IEnumerator SitThenPayRoutine(string giveTriggerName)
+    IEnumerator SitThenPayRoutine(string giveTriggerName, Transform handPosOverride)
     {
         yield return new WaitForSeconds(0.1f);
 
-        // สั่ง Animation ยื่นเงิน (นั่งซ้าย/ขวา)
         if (npcAnimator != null)
         {
             npcAnimator.SetTrigger(giveTriggerName);
             Debug.Log($"💰 Triggered: {giveTriggerName}");
         }
 
-        // รอให้มือยื่นออกมา
         yield return new WaitForSeconds(0.5f);
 
-        // ใช้ตำแหน่งมือจาก NPC โดยตรง
         if (npcSpawner != null && currentPassenger != null)
         {
-            Transform handPos = currentPassenger.GetHandPosition();
+            // ใช้ตำแหน่งที่กำหนดสำหรับฝั่งซ้าย/ขวา (ไม่ยุ่งกับตำแหน่งตัว NPC)
+            Transform handPos = handPosOverride != null ? handPosOverride : currentPassenger.GetHandPosition();
             if (handPos != null)
             {
                 npcSpawner.handPosition.position = handPos.position;
@@ -139,7 +140,6 @@ public class FareSystem : MonoBehaviour
         moneyReceived += amount;
         PlayMoneySound(amount);
 
-        // เปลี่ยนท่ากลับ
         if (npcAnimator != null)
         {
             if (currentPoseState == 0) npcAnimator.SetTrigger("trigStandDone");
@@ -228,6 +228,15 @@ public class FareSystem : MonoBehaviour
         isTransactionActive = false;
 
         if (uiPanel != null) uiPanel.SetActive(false);
+
+        // --- ✅ เติมส่วนนี้: สั่งให้ Animation กลับไปนั่งเฉยๆ ---
+        if (npcAnimator != null)
+        {
+            if (currentPoseState == 0) npcAnimator.SetTrigger("trigStandDone");
+            else if (currentPoseState == 1) npcAnimator.SetTrigger("trigSitDoneL"); // ซ้ายกลับ
+            else npcAnimator.SetTrigger("trigSitDoneR"); // ขวากลับ
+        }
+        // ----------------------------------------------------
 
         if (currentPassenger != null)
         {

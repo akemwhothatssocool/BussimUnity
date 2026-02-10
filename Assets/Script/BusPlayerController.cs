@@ -1,42 +1,61 @@
-using UnityEngine;
+Ôªøusing UnityEngine;
 
 public class BusPlayerController : MonoBehaviour
 {
-    [Header("1. §Ë“§«“¡‡√Á«")]
-    public float walkSpeed = 2f;      
-    public float runSpeed = 3f;      
+    [Header("1. ‡∏Ñ‡πà‡∏≤‡∏Ñ‡∏ß‡∏≤‡∏°‡πÄ‡∏£‡πá‡∏ß")]
+    public float walkSpeed = 2f;
+    public float runSpeed = 3f;
     public float exhaustedSpeed = 0.2f;
 
-    [Header("2. §Ë“ Stamina")]
-    public float maxStamina = 10f; 
+    [Header("2. ‡∏Ñ‡πà‡∏≤ Stamina")]
+    public float maxStamina = 10f;
     public float staminaDrainRate = 15f;
-    public float normalRegenRate = 3f; 
+    public float normalRegenRate = 3f;
     public float penaltyRegenRate = 0.5f;
 
-    [Header("3. °“√µ—Èß§Ë“Õ◊ËπÊ")]
+    [Header("3. ‡∏Å‡∏≤‡∏£‡∏ï‡∏±‡πâ‡∏á‡∏Ñ‡πà‡∏≤‡∏≠‡∏∑‡πà‡∏ô‡πÜ")]
     public float mouseSensitivity = 100f;
     public float gravity = -30.0f;
     public float acceleration = 8f;
     public Transform playerCamera;
 
-    // --- µ—«·ª√¿“¬„π ---
+    [Header("4. ‡∏£‡∏∞‡∏ö‡∏ö‡πÄ‡∏Å‡πá‡∏ö‡πÄ‡∏á‡∏¥‡∏ô (Interaction)")]
+    public float interactRange = 2.0f;
+    public LayerMask interactLayer;
+    public GameObject interactTextUI;
+
     private CharacterController controller;
     private float xRotation = 0f;
     private Vector3 velocity;
     public float currentStamina;
     private float activeMoveSpeed;
 
+    private bool isInteractingWithUI = false;
+
     void Start()
     {
         controller = GetComponent<CharacterController>();
-        // Cursor.lockState = CursorLockMode.Locked;
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
         currentStamina = maxStamina;
         activeMoveSpeed = walkSpeed;
+
+        if (interactTextUI != null) interactTextUI.SetActive(false);
     }
 
     void Update()
     {
-        // 1. Mouse Look
+        if (Cursor.visible) return;
+
+        HandleMouseLook();
+        HandleMovement();
+        HandleInteraction();
+    }
+
+    void HandleMouseLook()
+    {
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
 
@@ -44,8 +63,10 @@ public class BusPlayerController : MonoBehaviour
         xRotation = Mathf.Clamp(xRotation, -90f, 90f);
         playerCamera.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
         transform.Rotate(Vector3.up * mouseX);
+    }
 
-        // 2. Input
+    void HandleMovement()
+    {
         float x = Input.GetAxisRaw("Horizontal");
         float z = Input.GetAxisRaw("Vertical");
 
@@ -53,15 +74,11 @@ public class BusPlayerController : MonoBehaviour
         bool isMoving = direction.magnitude >= 0.1f;
         bool isShiftHold = Input.GetKey(KeyCode.LeftShift);
 
-        // 3. Target Speed Logic
         float targetSpeed;
-
         if (isShiftHold && isMoving)
         {
-            if (currentStamina > 0)
-                targetSpeed = runSpeed;
-            else
-                targetSpeed = exhaustedSpeed;
+            if (currentStamina > 0) targetSpeed = runSpeed;
+            else targetSpeed = exhaustedSpeed;
         }
         else
         {
@@ -71,27 +88,61 @@ public class BusPlayerController : MonoBehaviour
         activeMoveSpeed = Mathf.Lerp(activeMoveSpeed, targetSpeed, acceleration * Time.deltaTime);
         controller.Move(direction * activeMoveSpeed * Time.deltaTime);
 
-        // 4. Stamina System
         if (isShiftHold && isMoving && currentStamina > 0)
         {
             currentStamina -= staminaDrainRate * Time.deltaTime;
         }
         else
         {
-            if (isShiftHold)
-                currentStamina += penaltyRegenRate * Time.deltaTime;
-            else
-                currentStamina += normalRegenRate * Time.deltaTime;
+            if (isShiftHold) currentStamina += penaltyRegenRate * Time.deltaTime;
+            else currentStamina += normalRegenRate * Time.deltaTime;
         }
-
         currentStamina = Mathf.Clamp(currentStamina, 0, maxStamina);
 
-        // 5. Gravity
         if (controller.isGrounded && velocity.y < 0)
         {
             velocity.y = -2f;
         }
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
+    }
+
+    void HandleInteraction()
+    {
+        Debug.DrawRay(playerCamera.position, playerCamera.forward * interactRange, Color.red);
+
+        Ray ray = new Ray(playerCamera.position, playerCamera.forward);
+        RaycastHit hit;
+        bool foundTarget = false;
+
+        if (Physics.Raycast(ray, out hit, interactRange, interactLayer))
+        {
+            PassengerAI passenger = hit.collider.GetComponent<PassengerAI>();
+
+            if (passenger != null &&
+                passenger.currentState == PassengerAI.State.WaitingForFare &&
+                !passenger.hasPaid)
+            {
+                foundTarget = true;
+
+                if (interactTextUI != null)
+                {
+                    interactTextUI.SetActive(true);
+                }
+
+                if (Input.GetKeyDown(KeyCode.E))
+                {
+                    passenger.Interact();
+                }
+            }
+        }
+
+        if (!foundTarget)
+        {
+            if (interactTextUI != null && interactTextUI.activeSelf)
+            {
+                interactTextUI.SetActive(false);
+            }
+        }
     }
 }

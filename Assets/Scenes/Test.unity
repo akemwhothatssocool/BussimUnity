@@ -556,6 +556,8 @@ MonoBehaviour:
   currentPassenger: {fileID: 0}
   npcSpawner: {fileID: 1326563857}
   npcAnimator: {fileID: 0}
+  handPosSitL: {fileID: 0}
+  handPosSitR: {fileID: 0}
   audioSource: {fileID: 0}
   sfxCoin: {fileID: 0}
   sfxBank: {fileID: 0}
@@ -750,9 +752,9 @@ RectTransform:
   m_LocalScale: {x: 0, y: 0, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 407320991}
   - {fileID: 445656898}
   - {fileID: 1986040980}
+  - {fileID: 407320991}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -1178,7 +1180,7 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 407320990}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -1187,7 +1189,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -100}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &407320992
@@ -1237,8 +1239,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 24.21
-  m_fontSizeBase: 24.21
+  m_fontSize: 20
+  m_fontSizeBase: 20
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -1693,7 +1695,7 @@ GameObject:
   - component: {fileID: 551230348}
   m_Layer: 0
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1788,7 +1790,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0.834, z: -6.7}
-  m_LocalScale: {x: 0.92045, y: 0.8839173, z: 0.92045}
+  m_LocalScale: {x: 0.8, y: 0.8839173, z: 0.8}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 330585546}
@@ -1834,7 +1836,7 @@ MonoBehaviour:
   walkSpeed: 2
   runSpeed: 3
   exhaustedSpeed: 0.2
-  maxStamina: 10
+  maxStamina: 20
   staminaDrainRate: 15
   normalRegenRate: 3
   penaltyRegenRate: 0.5
@@ -1842,6 +1844,11 @@ MonoBehaviour:
   gravity: -30
   acceleration: 5
   playerCamera: {fileID: 330585546}
+  interactRange: 1.3
+  interactLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  interactTextUI: {fileID: 407320990}
   currentStamina: 0
 --- !u!1 &563665156
 GameObject:
@@ -3529,37 +3536,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1429724400}
   m_CullTransparentMesh: 1
---- !u!1 &1574672220
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1574672221}
-  m_Layer: 0
-  m_Name: Pos_Stand
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1574672221
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1574672220}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -3.54, y: 0.209, z: -0.552}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1585467590
 GameObject:
   m_ObjectHideFlags: 0
@@ -5072,6 +5048,5 @@ SceneRoots:
   - {fileID: 1406433436}
   - {fileID: 879364802}
   - {fileID: 1954955252}
-  - {fileID: 1574672221}
   - {fileID: 1940370540}
   - {fileID: 738422643}
