@@ -19,23 +19,28 @@ public class BusPlayerController : MonoBehaviour
     public float acceleration = 8f;
     public Transform playerCamera;
 
+    // --- ✅ ส่วนที่เพิ่มใหม่: ระบบ Interaction ---
     [Header("4. ระบบเก็บเงิน (Interaction)")]
-    public float interactRange = 2.0f;
-    public LayerMask interactLayer;
-    public GameObject interactTextUI;
+    public float interactRange = 2.0f; // ระยะเอื้อมถึง
+    public LayerMask interactLayer;    // เลือกเป็น Everything หรือ Layer ของ NPC
+    public GameObject interactTextUI;  // ลากข้อความ "กด E" มาใส่ตรงนี้
+    // ------------------------------------------
 
+    // --- ตัวแปรภายใน ---
     private CharacterController controller;
     private float xRotation = 0f;
     private Vector3 velocity;
     public float currentStamina;
     private float activeMoveSpeed;
 
+    // เช็คว่ากำลังเปิดหน้ารับเงินอยู่ไหม (เพื่อล็อคการเดิน/หันหน้า)
     private bool isInteractingWithUI = false;
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
 
+        // แนะนำให้เปิดบรรทัดนี้ เพื่อซ่อนเมาส์ตอนเดิน
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
@@ -47,11 +52,12 @@ public class BusPlayerController : MonoBehaviour
 
     void Update()
     {
+        // ถ้าเมาส์โชว์อยู่ (กำลังทอนเงิน) ให้หยุดการหันหน้าและเดิน
         if (Cursor.visible) return;
 
         HandleMouseLook();
         HandleMovement();
-        HandleInteraction();
+        HandleInteraction(); // ✅ เรียกฟังก์ชันเช็คการมอง
     }
 
     void HandleMouseLook()
@@ -74,6 +80,7 @@ public class BusPlayerController : MonoBehaviour
         bool isMoving = direction.magnitude >= 0.1f;
         bool isShiftHold = Input.GetKey(KeyCode.LeftShift);
 
+        // Target Speed Logic
         float targetSpeed;
         if (isShiftHold && isMoving)
         {
@@ -88,6 +95,7 @@ public class BusPlayerController : MonoBehaviour
         activeMoveSpeed = Mathf.Lerp(activeMoveSpeed, targetSpeed, acceleration * Time.deltaTime);
         controller.Move(direction * activeMoveSpeed * Time.deltaTime);
 
+        // Stamina System
         if (isShiftHold && isMoving && currentStamina > 0)
         {
             currentStamina -= staminaDrainRate * Time.deltaTime;
@@ -99,6 +107,7 @@ public class BusPlayerController : MonoBehaviour
         }
         currentStamina = Mathf.Clamp(currentStamina, 0, maxStamina);
 
+        // Gravity
         if (controller.isGrounded && velocity.y < 0)
         {
             velocity.y = -2f;
@@ -107,6 +116,7 @@ public class BusPlayerController : MonoBehaviour
         controller.Move(velocity * Time.deltaTime);
     }
 
+    // --- ✅ ฟังก์ชันใหม่: ยิง Raycast หาผู้โดยสาร ---
     void HandleInteraction()
     {
         Debug.DrawRay(playerCamera.position, playerCamera.forward * interactRange, Color.red);
@@ -119,15 +129,20 @@ public class BusPlayerController : MonoBehaviour
         {
             PassengerAI passenger = hit.collider.GetComponent<PassengerAI>();
 
-            if (passenger != null &&
-                passenger.currentState == PassengerAI.State.WaitingForFare &&
-                !passenger.hasPaid)
+            if (passenger != null && passenger.currentState == PassengerAI.State.WaitingForFare && !passenger.hasPaid)
             {
                 foundTarget = true;
 
+                // ✅ เพิ่ม Debug ละเอียดขึ้น
                 if (interactTextUI != null)
                 {
+                    Debug.Log($"✅ Trying to show UI. Current active state: {interactTextUI.activeSelf}");
                     interactTextUI.SetActive(true);
+                    Debug.Log($"✅ After SetActive(true): {interactTextUI.activeSelf}");
+                }
+                else
+                {
+                    Debug.LogError("❌❌❌ interactTextUI is NULL! Please assign in Inspector!");
                 }
 
                 if (Input.GetKeyDown(KeyCode.E))
@@ -141,6 +156,7 @@ public class BusPlayerController : MonoBehaviour
         {
             if (interactTextUI != null && interactTextUI.activeSelf)
             {
+                Debug.Log("🚫 Hiding UI");
                 interactTextUI.SetActive(false);
             }
         }

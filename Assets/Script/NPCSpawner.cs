@@ -1,18 +1,17 @@
 using UnityEngine;
-using System.Collections.Generic; // ต้องเพิ่มบรรทัดนี้เพื่อใช้ List
+using System.Collections.Generic;
 
 public class NPCSpawner : MonoBehaviour
 {
-    [Header("จุดที่ NPC จะยื่นมือมา")]
-    public Transform handPosition;
+    // [ลบ Transform handPosition ออกจากตรงนี้ เพราะเราจะรับค่าผ่าน Parameter แทน]
 
     [Header("รูปแบบเงินที่ NPC มี (ลาก Prefab มาใส่ให้ครบ)")]
-    public GameObject[] moneyPrefabs; // ใส่เหรียญ 10, แบงค์ 20, 50, 100, 500, 1000
+    public GameObject[] moneyPrefabs;
 
     private GameObject currentMoneyObject;
 
-    // รับค่า ticketPrice เข้ามาเพื่อคำนวณ
-    public void SpawnMoney(int ticketPrice)
+    // แก้ไข: เพิ่ม Parameter 'Transform npcHand' เพื่อรับตำแหน่งมือของตัวที่เรียกใช้
+    public void SpawnMoney(int ticketPrice, Transform npcHand)
     {
         // 1. ลบเงินเก่าทิ้ง (ถ้ามี)
         if (currentMoneyObject != null)
@@ -25,13 +24,9 @@ public class NPCSpawner : MonoBehaviour
 
         foreach (GameObject prefab in moneyPrefabs)
         {
-            // ดึงค่าเงินจาก Prefab มาเช็ค
             NPCMoneyItem itemScript = prefab.GetComponent<NPCMoneyItem>();
-
             if (itemScript != null)
             {
-                // กติกา: ต้องเป็นเงินที่มากกว่าหรือเท่ากับค่าตั๋ว
-                // (เช่น ตั๋ว 15 -> เอาเฉพาะแบงค์ 20, 50, 100... ไม่เอาเหรียญ 10)
                 if (itemScript.moneyValue >= ticketPrice)
                 {
                     validOptions.Add(prefab);
@@ -39,18 +34,28 @@ public class NPCSpawner : MonoBehaviour
             }
         }
 
-        // 3. ถ้าไม่มีเงินที่พอจ่ายเลย (กัน Error) ให้เอาใบที่ใหญ่ที่สุดที่มี
         if (validOptions.Count == 0)
         {
-            Debug.LogWarning("ไม่มีเงินที่พอจ่ายค่าตั๋ว! ระบบจะสุ่มมั่วแทน");
+            Debug.LogWarning("ไม่มีเงินที่พอจ่ายค่าตั๋ว!");
             validOptions.AddRange(moneyPrefabs);
         }
 
-        // 4. สุ่มหยิบจากตัวเลือกที่คัดมาแล้ว
+        // 3. สุ่มหยิบเงิน
         int randomIndex = Random.Range(0, validOptions.Count);
         GameObject selectedMoney = validOptions[randomIndex];
 
-        // 5. สร้างเงินออกมา
-        currentMoneyObject = Instantiate(selectedMoney, handPosition.position, handPosition.rotation);
+        // 4. เช็คว่าส่งมือมาจริงไหมเพื่อกัน Error
+        if (npcHand != null)
+        {
+            // สร้างเงินที่ตำแหน่งมือของ NPC ตัวนั้นๆ
+            currentMoneyObject = Instantiate(selectedMoney, npcHand.position, npcHand.rotation);
+
+            // (Option) ถ้าอยากให้เงินขยับตามมือ NPC ตลอดเวลา ให้ set parent ด้วย
+            currentMoneyObject.transform.SetParent(npcHand);
+        }
+        else
+        {
+            Debug.LogError("หา handPosition ของ NPC ไม่เจอ! ลืมส่งค่ามาหรือเปล่า?");
+        }
     }
 }

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5dacd1e898af5fe458e9e438f53fa0b2, type: 3}
+  m_Name: DefaultPassengerConfig
+  m_EditorClassIdentifier: Assembly-CSharp::BusConductor.Data.PassengerConfig
+  walkSpeed: 2.5
+  stoppingDistance: 0.3
+  rotationDuration: 0.5
+  sitAnimationDuration: 2.5
+  standAnimationDuration: 2
+  animationSmoothTime: 0.1
+  minRideTime: 10
+  maxRideTime: 20
+  fareAmount: 10
+  pathfindingTimeout: 10

@@ -100,12 +100,11 @@ public class FareSystem : MonoBehaviour
 
         if (npcSpawner != null && currentPassenger != null)
         {
+            // ✅ แก้ไข: ลบบรรทัดที่เซ็ต handPosition และส่ง Transform เข้าไปตรงๆ
             Transform handPos = currentPassenger.GetHandPosition();
             if (handPos != null)
             {
-                npcSpawner.handPosition.position = handPos.position;
-                npcSpawner.handPosition.rotation = handPos.rotation;
-                npcSpawner.SpawnMoney(currentTicket.price);
+                npcSpawner.SpawnMoney(currentTicket.price, handPos);
             }
         }
     }
@@ -124,13 +123,11 @@ public class FareSystem : MonoBehaviour
 
         if (npcSpawner != null && currentPassenger != null)
         {
-            // ใช้ตำแหน่งที่กำหนดสำหรับฝั่งซ้าย/ขวา (ไม่ยุ่งกับตำแหน่งตัว NPC)
+            // ✅ แก้ไข: ลบบรรทัดที่เซ็ต handPosition และส่ง Transform เข้าไปตรงๆ
             Transform handPos = handPosOverride != null ? handPosOverride : currentPassenger.GetHandPosition();
             if (handPos != null)
             {
-                npcSpawner.handPosition.position = handPos.position;
-                npcSpawner.handPosition.rotation = handPos.rotation;
-                npcSpawner.SpawnMoney(currentTicket.price);
+                npcSpawner.SpawnMoney(currentTicket.price, handPos);
             }
         }
     }
@@ -203,7 +200,7 @@ public class FareSystem : MonoBehaviour
         }
         else if (diff < 0)
         {
-            textPrice.text = failUnderQuotes[Random.Range(0, failUnderQuotes.Length)] + "\n(ขาด " + Mathf.Abs(diff) + ")";
+            textPrice.text = failUnderQuotes[Random.Range(0, failUnderQuotes.Length)] + "\\n(ขาด " + Mathf.Abs(diff) + ")";
             textPrice.color = Color.red;
             yield return new WaitForSeconds(2.0f);
             isTransactionActive = true;
@@ -212,7 +209,7 @@ public class FareSystem : MonoBehaviour
         }
         else
         {
-            textPrice.text = failOverQuotes[Random.Range(0, failOverQuotes.Length)] + "\n(เกิน " + diff + ")";
+            textPrice.text = failOverQuotes[Random.Range(0, failOverQuotes.Length)] + "\\n(เกิน " + diff + ")";
             textPrice.color = Color.yellow;
             yield return new WaitForSeconds(3.0f);
             CloseTransaction();
