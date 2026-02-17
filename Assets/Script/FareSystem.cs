@@ -38,7 +38,6 @@ public class FareSystem : MonoBehaviour
     public string[] failUnderQuotes = new string[] { "เฮ้ย! ทอนไม่ครบป่าวพี่!!", "จะโกงเหรอ!" };
     public string[] failOverQuotes = new string[] { "โอ้โห หวานเจี๊ยบ!", "ขอบคุณเสี่ย!" };
 
-    // ✅ FIX: เพิ่ม reference ไปยัง BusPlayerController เพื่อ reset state หลังปิด UI
     [Header("Player Controller")]
     public BusPlayerController playerController;
 
@@ -47,9 +46,9 @@ public class FareSystem : MonoBehaviour
         if (uiPanel != null) uiPanel.SetActive(false);
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
 
-        // ✅ FIX: Auto-find ถ้าลืม assign ใน Inspector
+        // ✅ FIX W1: เปลี่ยนจาก FindObjectOfType (obsolete) เป็น FindFirstObjectByType
         if (playerController == null)
-            playerController = FindObjectOfType<BusPlayerController>();
+            playerController = FindFirstObjectByType<BusPlayerController>();
     }
 
     public void StartTransaction(PassengerAI passenger)
@@ -96,7 +95,7 @@ public class FareSystem : MonoBehaviour
         if (npcAnimator != null)
         {
             npcAnimator.SetTrigger("trigStandGive");
-            Debug.Log("💰 Triggered: trigStandGive");
+            Debug.Log("Triggered: trigStandGive");
         }
 
         yield return new WaitForSeconds(0.5f);
@@ -116,7 +115,7 @@ public class FareSystem : MonoBehaviour
         if (npcAnimator != null)
         {
             npcAnimator.SetTrigger(giveTriggerName);
-            Debug.Log($"💰 Triggered: {giveTriggerName}");
+            Debug.Log($"Triggered: {giveTriggerName}");
         }
 
         yield return new WaitForSeconds(0.5f);
@@ -170,9 +169,7 @@ public class FareSystem : MonoBehaviour
         int diff = currentChange - correctChangeNeeded;
 
         if (moneyReceived >= currentTicket.price && diff >= 0)
-        {
             isTransactionActive = false;
-        }
 
         StartCoroutine(ShowResultAndClose(diff));
     }
@@ -223,15 +220,14 @@ public class FareSystem : MonoBehaviour
 
         if (uiPanel != null) uiPanel.SetActive(false);
 
-        // ✅ FIX 1: ซ่อนเมาส์และล็อค cursor เพื่อให้ผู้เล่นเดินได้อีกครั้ง
+        // ✅ Unlock cursor ให้ผู้เล่นเดินได้
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
 
-        // ✅ FIX 2: บอก BusPlayerController ให้ reset isTransactionActive
+        // ✅ Reset BusPlayerController state
         if (playerController != null)
             playerController.ResetInteraction();
 
-        // สั่ง Animation กลับสถานะปกติ
         if (npcAnimator != null)
         {
             if (currentPoseState == 0) npcAnimator.SetTrigger("trigStandDone");
@@ -267,7 +263,6 @@ public class FareSystem : MonoBehaviour
     void PlayMoneySound(int amount)
     {
         if (audioSource == null) return;
-
         if (amount <= 10)
             audioSource.PlayOneShot(sfxCoin);
         else

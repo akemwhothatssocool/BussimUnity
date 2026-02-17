@@ -19,52 +19,42 @@ public class BusPlayerController : MonoBehaviour
     public float acceleration = 8f;
     public Transform playerCamera;
 
-    [Header("4. ระบบเก็บเงิน (Interaction)")]
+    [Header("4. ระบบ Interaction")]
     public float interactRange = 2.0f;
     public LayerMask interactLayer;
-    public GameObject interactTextUI;
+    public InteractPromptUI interactPromptUI; // ลาก InteractText มาใส่ตรงนี้
 
     [Header("5. ระบบ Payment UI")]
     public GameObject uiPanel;
     public UnityEngine.UI.Text textPrice;
     public Animator npcAnimator;
 
-    // --- ตัวแปรภายใน ---
     private CharacterController controller;
     private float xRotation = 0f;
     private Vector3 velocity;
     public float currentStamina;
     private float activeMoveSpeed;
-
     private bool isTransactionActive = false;
-
-    private float moneyReceived = 0;
-    private float currentChange = 0;
-    private int currentPoseState = 0;
-    private PassengerAI currentPassenger = null;
-
     private const float maxFallSpeed = -20f;
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
-
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-
         currentStamina = maxStamina;
         activeMoveSpeed = walkSpeed;
 
-        if (interactTextUI != null) interactTextUI.SetActive(false);
+        // ✅ ซ่อน UI ตั้งแต่แรก
+        if (interactPromptUI != null) interactPromptUI.Hide(true);
 
         if (interactLayer == 0)
-            Debug.LogWarning("WARNING: interactLayer not set in Inspector! Raycast will not work.");
+            Debug.LogWarning("⚠️ interactLayer = 0 Raycast จะไม่ทำงาน");
     }
 
     void Update()
     {
         if (Cursor.visible) return;
-
         HandleMouseLook();
         HandleMovement();
         HandleInteraction();
@@ -74,7 +64,6 @@ public class BusPlayerController : MonoBehaviour
     {
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
-
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -90f, 90f);
         playerCamera.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
@@ -85,26 +74,19 @@ public class BusPlayerController : MonoBehaviour
     {
         float x = Input.GetAxisRaw("Horizontal");
         float z = Input.GetAxisRaw("Vertical");
-
         Vector3 direction = (transform.right * x + transform.forward * z).normalized;
         bool isMoving = direction.magnitude >= 0.1f;
         bool isShiftHold = Input.GetKey(KeyCode.LeftShift);
 
         float targetSpeed;
         if (isShiftHold && isMoving)
-        {
-            if (currentStamina > 0) targetSpeed = runSpeed;
-            else targetSpeed = exhaustedSpeed;
-        }
+            targetSpeed = (currentStamina > 0) ? runSpeed : exhaustedSpeed;
         else
-        {
             targetSpeed = walkSpeed;
-        }
 
         activeMoveSpeed = Mathf.Lerp(activeMoveSpeed, targetSpeed, acceleration * Time.deltaTime);
         controller.Move(direction * activeMoveSpeed * Time.deltaTime);
 
-        // Stamina Logic
         if (isShiftHold && isMoving && currentStamina > 0)
             currentStamina -= staminaDrainRate * Time.deltaTime;
         else if (isShiftHold)
@@ -114,10 +96,7 @@ public class BusPlayerController : MonoBehaviour
 
         currentStamina = Mathf.Clamp(currentStamina, 0, maxStamina);
 
-        // Gravity with clamp
-        if (controller.isGrounded && velocity.y < 0)
-            velocity.y = -2f;
-
+        if (controller.isGrounded && velocity.y < 0) velocity.y = -2f;
         velocity.y = Mathf.Max(velocity.y + gravity * Time.deltaTime, maxFallSpeed);
         controller.Move(velocity * Time.deltaTime);
     }
@@ -126,42 +105,38 @@ public class BusPlayerController : MonoBehaviour
     {
         if (isTransactionActive) return;
 
-        Debug.DrawRay(playerCamera.position, playerCamera.forward * interactRange, Color.red);
-
         Ray ray = new Ray(playerCamera.position, playerCamera.forward);
         RaycastHit hit;
-        bool foundTarget = false;
+        bool foundInteractable = false;
 
         if (Physics.Raycast(ray, out hit, interactRange, interactLayer))
         {
-            PassengerAI passenger = hit.collider.GetComponent<PassengerAI>();
+            IInteractable interactable = hit.collider.GetComponentInParent<IInteractable>();
 
-            if (passenger != null && passenger.currentState == PassengerAI.State.WaitingForFare && !passenger.hasPaid)
+            if (interactable != null && interactable.CanInteract())
             {
-                foundTarget = true;
+                foundInteractable = true;
 
-                if (interactTextUI != null)
-                    interactTextUI.SetActive(true);
-                else
-                    Debug.LogError("interactTextUI is NULL! Please assign in Inspector!");
+                // ✅ แสดง UI เฉพาะตอน CanInteract() = true เท่านั้น
+                if (interactPromptUI != null) interactPromptUI.Show(interactable.GetPromptText());
 
                 if (Input.GetKeyDown(KeyCode.E))
                 {
                     isTransactionActive = true;
-                    if (interactTextUI != null) interactTextUI.SetActive(false);
-                    passenger.Interact();
+                    // ✅ ซ่อน UI ทันทีที่กด E
+                    if (interactPromptUI != null) interactPromptUI.Hide();
+                    interactable.Interact();
                 }
             }
         }
 
-        if (!foundTarget)
-        {
-            if (interactTextUI != null && interactTextUI.activeSelf)
-                interactTextUI.SetActive(false);
-        }
+        // ✅ ซ่อน UI ถ้ามองออกไป หรือ NPC ยังไม่พร้อม (FindingSeat ฯลฯ)
+        if (!foundInteractable && interactPromptUI != null && interactPromptUI.IsVisible)
+            interactPromptUI.Hide();
+
+        Debug.DrawRay(playerCamera.position, playerCamera.forward * interactRange, Color.red);
     }
 
-    // Public method ให้ FareSystem เรียก reset state หลังปิด UI
     public void ResetInteraction()
     {
         isTransactionActive = false;

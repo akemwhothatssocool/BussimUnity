@@ -1,10 +1,6 @@
-using UnityEngine;
+๏ปฟusing UnityEngine;
 using TMPro;
 
-/// <summary>
-/// จัดการ Interact Prompt UI แบบสวยงาม
-/// รองรับ fade in/out animation
-/// </summary>
 public class InteractPromptUI : MonoBehaviour
 {
     [Header("References")]
@@ -19,6 +15,8 @@ public class InteractPromptUI : MonoBehaviour
 
     [Header("Key Display")]
     [SerializeField] private string interactKey = "E";
+    [SerializeField] private int spriteIndex = 0; // เนเธเน index เนเธ—เธ
+    [SerializeField] private bool useSprite = true;
 
     private bool isVisible = false;
     private float targetAlpha = 0f;
@@ -27,27 +25,25 @@ public class InteractPromptUI : MonoBehaviour
 
     private void Awake()
     {
-        // Auto-assign components
         if (canvasGroup == null)
             canvasGroup = GetComponent<CanvasGroup>();
-
         if (canvasGroup == null)
             canvasGroup = gameObject.AddComponent<CanvasGroup>();
 
-        if (promptText == null)
-            promptText = GetComponentInChildren<TextMeshProUGUI>();
-
         originalScale = transform.localScale;
-
-        // เริ่มต้นซ่อน UI
         Hide(true);
     }
 
     private void Start()
     {
-        // แสดงปุ่ม
-        if (keyText != null)
+        if (keyText != null && useSprite)
+        {
+            keyText.text = $"<sprite={spriteIndex}>";
+        }
+        else if (keyText != null)
+        {
             keyText.text = interactKey;
+        }
     }
 
     private void Update()
@@ -56,11 +52,6 @@ public class InteractPromptUI : MonoBehaviour
         UpdatePulseAnimation();
     }
 
-    #region Public Methods
-
-    /// <summary>
-    /// แสดง Prompt พร้อมข้อความ
-    /// </summary>
     public void Show(string message)
     {
         if (!isVisible)
@@ -69,13 +60,17 @@ public class InteractPromptUI : MonoBehaviour
             targetAlpha = 1f;
 
             if (promptText != null)
+            {
+                if (useSprite)
+                {
+                    // เนเธเน index เธเนเธฒเธขเธเธงเนเธฒ
+                    message = message.Replace("E", $"<sprite={spriteIndex}>");
+                }
                 promptText.text = message;
+            }
         }
     }
 
-    /// <summary>
-    /// ซ่อน Prompt
-    /// </summary>
     public void Hide(bool immediate = false)
     {
         isVisible = false;
@@ -89,23 +84,14 @@ public class InteractPromptUI : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// เช็คว่ากำลังแสดงอยู่หรือไม่
-    /// </summary>
     public bool IsVisible => isVisible;
-
-    #endregion
-
-    #region Private Methods
 
     private void UpdateFade()
     {
         if (canvasGroup == null) return;
 
-        // Smooth fade
         canvasGroup.alpha = Mathf.Lerp(canvasGroup.alpha, targetAlpha, fadeSpeed * Time.deltaTime);
 
-        // Update interactivity
         if (canvasGroup.alpha > 0.9f)
         {
             canvasGroup.interactable = true;
@@ -122,11 +108,8 @@ public class InteractPromptUI : MonoBehaviour
     {
         if (!isVisible) return;
 
-        // Pulse effect
         scaleTimer += Time.deltaTime * scaleSpeed;
         float scale = 1f + Mathf.Sin(scaleTimer) * (scaleAmount - 1f) * 0.5f;
         transform.localScale = originalScale * scale;
     }
-
-    #endregion
 }

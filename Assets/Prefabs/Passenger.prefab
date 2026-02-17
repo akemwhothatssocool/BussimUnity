@@ -172,13 +172,13 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
       insertIndex: -1
+      addedObject: {fileID: 4120494953036251910}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
+      insertIndex: -1
       addedObject: {fileID: 2093132150685127062}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7971242771786306718}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 4120494953036251910}
   m_SourcePrefab: {fileID: 100100000, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
 --- !u!4 &526979438144831611 stripped
 Transform:
@@ -190,6 +190,30 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
   m_PrefabInstance: {fileID: 61516012217149328}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &4120494953036251910
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 872543485566032577}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3a467756b8e84d489f45d0942c3d85c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PassengerAI
+  currentState: 0
+  hasPaid: 0
+  speedSmoothTime: 0.1
+  agent: {fileID: 7971242771786306718}
+  animator: {fileID: 5886233116731972097}
+  handPosStand: {fileID: 2034827958308915636}
+  handPosSitL: {fileID: 3055520046541163354}
+  handPosSitR: {fileID: 119704818718882961}
+  mySeatPoint: {fileID: 0}
+  exitPoint: {fileID: 0}
+  isSittingSeat: 0
+  isRightSide: 0
 --- !u!136 &2093132150685127062
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -235,32 +259,6 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
---- !u!114 &4120494953036251910
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 872543485566032577}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e3a467756b8e84d489f45d0942c3d85c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PassengerAI
-  currentState: 0
-  interactDistance: 1.3
-  hasPaid: 0
-  speedSmoothTime: 0.1
-  agent: {fileID: 7971242771786306718}
-  animator: {fileID: 5886233116731972097}
-  interactTextUI: {fileID: 0}
-  handPosStand: {fileID: 2034827958308915636}
-  handPosSitL: {fileID: 3055520046541163354}
-  handPosSitR: {fileID: 119704818718882961}
-  mySeatPoint: {fileID: 0}
-  exitPoint: {fileID: 0}
-  isSittingSeat: 0
-  isRightSide: 0
 --- !u!95 &5886233116731972097 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
