@@ -35,7 +35,7 @@ MonoBehaviour:
     m_StrikethroughOffset: 0
     m_StrikethroughThickness: 0
     m_TabWidth: 0
-  m_Material: {fileID: 5757090103093019111}
+  m_Material: {fileID: 2657156752067961686}
   spriteSheet: {fileID: 2800000, guid: 11d742588bc6ac248a62490d44e84762, type: 3}
   m_SpriteCharacterTable:
   - m_ElementType: 2
@@ -46,23 +46,23 @@ MonoBehaviour:
   m_GlyphTable:
   - m_Index: 0
     m_Metrics:
-      m_Width: 712
-      m_Height: 648
-      m_HorizontalBearingX: -356
-      m_HorizontalBearingY: 324
-      m_HorizontalAdvance: 712
+      m_Width: 1311
+      m_Height: 1195
+      m_HorizontalBearingX: -655.5
+      m_HorizontalBearingY: 597.5
+      m_HorizontalAdvance: 1311
     m_GlyphRect:
-      m_X: 156
-      m_Y: 195
-      m_Width: 712
-      m_Height: 648
+      m_X: 0
+      m_Y: 107
+      m_Width: 1311
+      m_Height: 1195
     m_Scale: 1
     m_AtlasIndex: 0
     m_ClassDefinitionType: 0
     sprite: {fileID: -756252116, guid: 11d742588bc6ac248a62490d44e84762, type: 3}
   spriteInfoList: []
   fallbackSpriteAssets: []
---- !u!21 &5757090103093019111
+--- !u!21 &2657156752067961686
 Material:
   serializedVersion: 8
   m_ObjectHideFlags: 0

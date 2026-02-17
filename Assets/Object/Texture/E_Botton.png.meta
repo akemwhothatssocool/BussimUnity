@@ -113,10 +113,10 @@ TextureImporter:
       name: E_Botton_0
       rect:
         serializedVersion: 2
-        x: 156
-        y: 195
-        width: 712
-        height: 648
+        x: 0
+        y: 107
+        width: 1311
+        height: 1195
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
