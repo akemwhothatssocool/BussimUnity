@@ -38,46 +38,49 @@ public class FareSystem : MonoBehaviour
     public string[] failUnderQuotes = new string[] { "เฮ้ย! ทอนไม่ครบป่าวพี่!!", "จะโกงเหรอ!" };
     public string[] failOverQuotes = new string[] { "โอ้โห หวานเจี๊ยบ!", "ขอบคุณเสี่ย!" };
 
+    // ✅ FIX: เพิ่ม reference ไปยัง BusPlayerController เพื่อ reset state หลังปิด UI
+    [Header("Player Controller")]
+    public BusPlayerController playerController;
+
     void Start()
     {
         if (uiPanel != null) uiPanel.SetActive(false);
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
+
+        // ✅ FIX: Auto-find ถ้าลืม assign ใน Inspector
+        if (playerController == null)
+            playerController = FindObjectOfType<BusPlayerController>();
     }
 
     public void StartTransaction(PassengerAI passenger)
     {
-        // 1. เก็บตัว NPC ไว้
         currentPassenger = passenger;
         npcAnimator = passenger.animator;
 
-        // 2. ตั้งค่าตั๋ว/ราคา
         if (currentTicket == null)
             currentTicket = ScriptableObject.CreateInstance<TicketData>();
         currentTicket.price = 20;
 
-        // 3. รีเซ็ตค่าเงิน
         moneyReceived = 0;
         currentChange = 0;
         isTransactionActive = true;
 
-        // 4. เช็คท่าทาง (ห้ามมีบรรทัดสั่ง transform.position)
         if (!passenger.isSittingSeat)
         {
-            currentPoseState = 0; // ยืน
+            currentPoseState = 0;
             StartCoroutine(StandThenPayRoutine());
         }
-        else if (!passenger.isRightSide) // นั่งซ้าย
+        else if (!passenger.isRightSide)
         {
             currentPoseState = 1;
             StartCoroutine(SitThenPayRoutine("trigSitGiveL", handPosSitL));
         }
-        else // นั่งขวา
+        else
         {
             currentPoseState = 2;
             StartCoroutine(SitThenPayRoutine("trigSitGiveR", handPosSitR));
         }
 
-        // 5. ตั้งค่า UI
         if (uiPanel != null) uiPanel.SetActive(false);
         textPrice.color = Color.black;
         textPrice.text = "ค่ารถ: " + currentTicket.price + " บาท";
@@ -100,12 +103,9 @@ public class FareSystem : MonoBehaviour
 
         if (npcSpawner != null && currentPassenger != null)
         {
-            // ✅ แก้ไข: ลบบรรทัดที่เซ็ต handPosition และส่ง Transform เข้าไปตรงๆ
             Transform handPos = currentPassenger.GetHandPosition();
             if (handPos != null)
-            {
                 npcSpawner.SpawnMoney(currentTicket.price, handPos);
-            }
         }
     }
 
@@ -123,12 +123,9 @@ public class FareSystem : MonoBehaviour
 
         if (npcSpawner != null && currentPassenger != null)
         {
-            // ✅ แก้ไข: ลบบรรทัดที่เซ็ต handPosition และส่ง Transform เข้าไปตรงๆ
             Transform handPos = handPosOverride != null ? handPosOverride : currentPassenger.GetHandPosition();
             if (handPos != null)
-            {
                 npcSpawner.SpawnMoney(currentTicket.price, handPos);
-            }
         }
     }
 
@@ -200,7 +197,7 @@ public class FareSystem : MonoBehaviour
         }
         else if (diff < 0)
         {
-            textPrice.text = failUnderQuotes[Random.Range(0, failUnderQuotes.Length)] + "\\n(ขาด " + Mathf.Abs(diff) + ")";
+            textPrice.text = failUnderQuotes[Random.Range(0, failUnderQuotes.Length)] + "\n(ขาด " + Mathf.Abs(diff) + ")";
             textPrice.color = Color.red;
             yield return new WaitForSeconds(2.0f);
             isTransactionActive = true;
@@ -209,7 +206,7 @@ public class FareSystem : MonoBehaviour
         }
         else
         {
-            textPrice.text = failOverQuotes[Random.Range(0, failOverQuotes.Length)] + "\\n(เกิน " + diff + ")";
+            textPrice.text = failOverQuotes[Random.Range(0, failOverQuotes.Length)] + "\n(เกิน " + diff + ")";
             textPrice.color = Color.yellow;
             yield return new WaitForSeconds(3.0f);
             CloseTransaction();
@@ -226,14 +223,21 @@ public class FareSystem : MonoBehaviour
 
         if (uiPanel != null) uiPanel.SetActive(false);
 
-        // --- ✅ เติมส่วนนี้: สั่งให้ Animation กลับไปนั่งเฉยๆ ---
+        // ✅ FIX 1: ซ่อนเมาส์และล็อค cursor เพื่อให้ผู้เล่นเดินได้อีกครั้ง
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
+
+        // ✅ FIX 2: บอก BusPlayerController ให้ reset isTransactionActive
+        if (playerController != null)
+            playerController.ResetInteraction();
+
+        // สั่ง Animation กลับสถานะปกติ
         if (npcAnimator != null)
         {
             if (currentPoseState == 0) npcAnimator.SetTrigger("trigStandDone");
-            else if (currentPoseState == 1) npcAnimator.SetTrigger("trigSitDoneL"); // ซ้ายกลับ
-            else npcAnimator.SetTrigger("trigSitDoneR"); // ขวากลับ
+            else if (currentPoseState == 1) npcAnimator.SetTrigger("trigSitDoneL");
+            else npcAnimator.SetTrigger("trigSitDoneR");
         }
-        // ----------------------------------------------------
 
         if (currentPassenger != null)
         {
@@ -249,9 +253,7 @@ public class FareSystem : MonoBehaviour
             if (textPrice.color == Color.black && currentTicket != null)
             {
                 if (!textPrice.text.Contains("ขาด") && !textPrice.text.Contains("เกิน"))
-                {
                     textPrice.text = "ค่ารถ: " + currentTicket.price + " บาท";
-                }
             }
 
             if (textReceived != null)

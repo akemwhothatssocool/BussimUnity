@@ -18,7 +18,6 @@ public class PassengerAI : MonoBehaviour
     [Header("Component ที่ต้องใส่")]
     public NavMeshAgent agent;
     public Animator animator;
-    // public GameObject interactTextUI; // ย้ายไปให้ Player จัดการแทน
 
     [Header("ตำแหน่งมือ")]
     public Transform handPosStand;
@@ -37,7 +36,6 @@ public class PassengerAI : MonoBehaviour
     private FareSystem fareSystem;
     private bool isProcessingPayment = false;
 
-    // ตั้งฝั่งซ้าย/ขวา จากชื่อจุดนั่ง
     public void SetSeat(Transform seatPoint)
     {
         mySeatPoint = seatPoint;
@@ -54,9 +52,7 @@ public class PassengerAI : MonoBehaviour
     {
         fareSystem = FindObjectOfType<FareSystem>();
         if (fareSystem == null)
-        {
             Debug.LogError("❌ ไม่เจอ FareSystem ใน Scene!");
-        }
 
         if (agent != null)
         {
@@ -79,13 +75,10 @@ public class PassengerAI : MonoBehaviour
     void Update()
     {
         UpdateAnimationSpeed();
-        // ไม่ต้อง CheckInteraction อีกต่อไป ให้ Player เป็นคนเรียก Interact()
     }
 
-    // ฟังก์ชันให้ Player เรียกตอนกด E ใส่ NPC
     public void Interact()
     {
-        // ถ้าจ่ายแล้ว หรือกำลังจ่ายอยู่ หรือยังไม่อยู่สถานะรอเก็บเงิน ก็ไม่ทำอะไร
         if (hasPaid || isProcessingPayment || currentState != State.WaitingForFare) return;
 
         isProcessingPayment = true;
@@ -169,9 +162,7 @@ public class PassengerAI : MonoBehaviour
         yield return new WaitForSeconds(0.5f);
 
         if (mySeatPoint != null)
-        {
             StartCoroutine(RotateTowards(mySeatPoint.rotation));
-        }
 
         if (isSittingSeat)
         {
@@ -211,16 +202,10 @@ public class PassengerAI : MonoBehaviour
         Debug.Log($"💰 {gameObject.name} Starting payment");
         currentState = State.Paying;
 
-        // UI InteractText ให้ Player ไปซ่อน/โชว์เอง
-
         if (fareSystem != null)
-        {
             fareSystem.StartTransaction(this);
-        }
         else
-        {
             Debug.LogError("❌ FareSystem เป็น null!");
-        }
 
         yield return new WaitForSeconds(1.0f);
         isProcessingPayment = false;
@@ -238,13 +223,9 @@ public class PassengerAI : MonoBehaviour
             hand = handPosSitL;
 
         if (hand != null)
-        {
             Debug.Log($"🖐️ {gameObject.name} GetHandPosition: {hand.name} at {hand.position}");
-        }
         else
-        {
             Debug.LogError($"❌ {gameObject.name} Hand Transform is NULL!");
-        }
 
         return hand;
     }
@@ -266,6 +247,7 @@ public class PassengerAI : MonoBehaviour
         Debug.Log($"🚪 {gameObject.name} Time to exit");
         currentState = State.Exiting;
 
+        // ลุกจากที่นั่งก่อน
         if (isSittingSeat)
         {
             animator.SetBool("isSitting", false);
@@ -282,12 +264,39 @@ public class PassengerAI : MonoBehaviour
         {
             agent.isStopped = false;
             agent.SetDestination(exitPoint.position);
-            Debug.Log($"🚶 {gameObject.name} Walking to exit");
+            Debug.Log($"🚶 {gameObject.name} Walking to exit at {exitPoint.position}");
 
-            while (!agent.pathPending && agent.remainingDistance > 1.0f)
+            // ✅ FIX: รอให้ NavMesh คำนวณเส้นทางเสร็จก่อน (pathPending = true ตอนกำลังคำนวณ)
+            float timeout = 5f;
+            float elapsed = 0f;
+            while (agent.pathPending)
             {
                 yield return null;
+                elapsed += Time.deltaTime;
+                if (elapsed > timeout)
+                {
+                    Debug.LogWarning($"⚠️ {gameObject.name} Path calculation timeout!");
+                    break;
+                }
             }
+
+            // ✅ FIX: จากนั้นค่อยรอจนถึง exitPoint
+            elapsed = 0f;
+            while (agent.remainingDistance > 1.0f)
+            {
+                yield return null;
+                elapsed += Time.deltaTime;
+                if (elapsed > 30f) // timeout กันค้างนาน
+                {
+                    Debug.LogWarning($"⚠️ {gameObject.name} Exit walk timeout!");
+                    break;
+                }
+            }
+        }
+        else
+        {
+            if (agent == null) Debug.LogError($"❌ {gameObject.name} Agent is NULL on exit!");
+            if (exitPoint == null) Debug.LogError($"❌ {gameObject.name} exitPoint is NULL! ตรวจสอบ BusStopManager ว่า assign exitPoint แล้วหรือยัง");
         }
 
         onExitBus?.Invoke();

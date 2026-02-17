@@ -19,12 +19,15 @@ public class BusPlayerController : MonoBehaviour
     public float acceleration = 8f;
     public Transform playerCamera;
 
-    // --- ✅ ส่วนที่เพิ่มใหม่: ระบบ Interaction ---
     [Header("4. ระบบเก็บเงิน (Interaction)")]
-    public float interactRange = 2.0f; // ระยะเอื้อมถึง
-    public LayerMask interactLayer;    // เลือกเป็น Everything หรือ Layer ของ NPC
-    public GameObject interactTextUI;  // ลากข้อความ "กด E" มาใส่ตรงนี้
-    // ------------------------------------------
+    public float interactRange = 2.0f;
+    public LayerMask interactLayer;
+    public GameObject interactTextUI;
+
+    [Header("5. ระบบ Payment UI")]
+    public GameObject uiPanel;
+    public UnityEngine.UI.Text textPrice;
+    public Animator npcAnimator;
 
     // --- ตัวแปรภายใน ---
     private CharacterController controller;
@@ -33,14 +36,19 @@ public class BusPlayerController : MonoBehaviour
     public float currentStamina;
     private float activeMoveSpeed;
 
-    // เช็คว่ากำลังเปิดหน้ารับเงินอยู่ไหม (เพื่อล็อคการเดิน/หันหน้า)
-    private bool isInteractingWithUI = false;
+    private bool isTransactionActive = false;
+
+    private float moneyReceived = 0;
+    private float currentChange = 0;
+    private int currentPoseState = 0;
+    private PassengerAI currentPassenger = null;
+
+    private const float maxFallSpeed = -20f;
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
 
-        // แนะนำให้เปิดบรรทัดนี้ เพื่อซ่อนเมาส์ตอนเดิน
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
@@ -48,16 +56,18 @@ public class BusPlayerController : MonoBehaviour
         activeMoveSpeed = walkSpeed;
 
         if (interactTextUI != null) interactTextUI.SetActive(false);
+
+        if (interactLayer == 0)
+            Debug.LogWarning("WARNING: interactLayer not set in Inspector! Raycast will not work.");
     }
 
     void Update()
     {
-        // ถ้าเมาส์โชว์อยู่ (กำลังทอนเงิน) ให้หยุดการหันหน้าและเดิน
         if (Cursor.visible) return;
 
         HandleMouseLook();
         HandleMovement();
-        HandleInteraction(); // ✅ เรียกฟังก์ชันเช็คการมอง
+        HandleInteraction();
     }
 
     void HandleMouseLook()
@@ -80,7 +90,6 @@ public class BusPlayerController : MonoBehaviour
         bool isMoving = direction.magnitude >= 0.1f;
         bool isShiftHold = Input.GetKey(KeyCode.LeftShift);
 
-        // Target Speed Logic
         float targetSpeed;
         if (isShiftHold && isMoving)
         {
@@ -95,30 +104,28 @@ public class BusPlayerController : MonoBehaviour
         activeMoveSpeed = Mathf.Lerp(activeMoveSpeed, targetSpeed, acceleration * Time.deltaTime);
         controller.Move(direction * activeMoveSpeed * Time.deltaTime);
 
-        // Stamina System
+        // Stamina Logic
         if (isShiftHold && isMoving && currentStamina > 0)
-        {
             currentStamina -= staminaDrainRate * Time.deltaTime;
-        }
+        else if (isShiftHold)
+            currentStamina += penaltyRegenRate * Time.deltaTime;
         else
-        {
-            if (isShiftHold) currentStamina += penaltyRegenRate * Time.deltaTime;
-            else currentStamina += normalRegenRate * Time.deltaTime;
-        }
+            currentStamina += normalRegenRate * Time.deltaTime;
+
         currentStamina = Mathf.Clamp(currentStamina, 0, maxStamina);
 
-        // Gravity
+        // Gravity with clamp
         if (controller.isGrounded && velocity.y < 0)
-        {
             velocity.y = -2f;
-        }
-        velocity.y += gravity * Time.deltaTime;
+
+        velocity.y = Mathf.Max(velocity.y + gravity * Time.deltaTime, maxFallSpeed);
         controller.Move(velocity * Time.deltaTime);
     }
 
-    // --- ✅ ฟังก์ชันใหม่: ยิง Raycast หาผู้โดยสาร ---
     void HandleInteraction()
     {
+        if (isTransactionActive) return;
+
         Debug.DrawRay(playerCamera.position, playerCamera.forward * interactRange, Color.red);
 
         Ray ray = new Ray(playerCamera.position, playerCamera.forward);
@@ -133,20 +140,15 @@ public class BusPlayerController : MonoBehaviour
             {
                 foundTarget = true;
 
-                // ✅ เพิ่ม Debug ละเอียดขึ้น
                 if (interactTextUI != null)
-                {
-                    Debug.Log($"✅ Trying to show UI. Current active state: {interactTextUI.activeSelf}");
                     interactTextUI.SetActive(true);
-                    Debug.Log($"✅ After SetActive(true): {interactTextUI.activeSelf}");
-                }
                 else
-                {
-                    Debug.LogError("❌❌❌ interactTextUI is NULL! Please assign in Inspector!");
-                }
+                    Debug.LogError("interactTextUI is NULL! Please assign in Inspector!");
 
                 if (Input.GetKeyDown(KeyCode.E))
                 {
+                    isTransactionActive = true;
+                    if (interactTextUI != null) interactTextUI.SetActive(false);
                     passenger.Interact();
                 }
             }
@@ -155,10 +157,13 @@ public class BusPlayerController : MonoBehaviour
         if (!foundTarget)
         {
             if (interactTextUI != null && interactTextUI.activeSelf)
-            {
-                Debug.Log("🚫 Hiding UI");
                 interactTextUI.SetActive(false);
-            }
         }
+    }
+
+    // Public method ให้ FareSystem เรียก reset state หลังปิด UI
+    public void ResetInteraction()
+    {
+        isTransactionActive = false;
     }
 }
