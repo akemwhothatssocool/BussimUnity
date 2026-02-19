@@ -411,10 +411,18 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4120494953036251910}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 9113580599911037142}
   m_SourcePrefab: {fileID: 100100000, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
 --- !u!4 &526979438144831611 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
+  m_PrefabInstance: {fileID: 61516012217149328}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &593665301686410323 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: -8581728872460059709, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
   m_PrefabInstance: {fileID: 61516012217149328}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &872543485566032577 stripped
@@ -479,6 +487,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e3a467756b8e84d489f45d0942c3d85c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PassengerAI
+  currentState: 0
+  hasPaid: 0
+  speedSmoothTime: 0.1
   agent: {fileID: 7971242771786306718}
   animator: {fileID: 5886233116731972097}
   handPosStand: {fileID: 2034827958308915636}
@@ -488,16 +499,94 @@ MonoBehaviour:
   exitPoint: {fileID: 0}
   isSittingSeat: 0
   isRightSide: 0
-  walkSpeed: 2.5
-  sitAnimationDuration: 2.5
-  standAnimationDuration: 2
-  rotationDuration: 0.5
-  pathfindingTimeout: 10
-  currentState: 0
-  hasPaid: 0
-  isProcessingPayment: 0
+--- !u!114 &9113580599911037142
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 872543485566032577}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a30eb7455ba8f45b286b581ea3dea73a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterRandomizer
+  hairStyles:
+  - {fileID: 6895765697047964445}
+  - {fileID: 5344427598217328896}
+  - {fileID: 4268524691677756353}
+  - {fileID: 593665301686410323}
+  - {fileID: 5134655172278747797}
+  noses:
+  - {fileID: 4050836961562679525}
+  eyes: []
+  shirts:
+  - {fileID: 8894997758395378853}
+  pants:
+  - {fileID: 8180163134838576961}
+  shoes:
+  - {fileID: 4384673096255486274}
+  roughness: 1
+  randomizeOnStart: 1
+  noseDarkerAmount: 0.205
+  defaultEyeColor: {r: 0, g: 0, b: 0, a: 1}
+  enableBlinking: 1
+  blinkIntervalMin: 2
+  blinkIntervalMax: 5
+  blinkDuration: 0.15
+  closedScaleY: 0.1
+  useCrazyMode: 1
+  autoLoopCrazy: 0
+  loopInterval: 0.3
+  crazyLevel: 0.187
+  skinRenderer: {fileID: 4664134467567186993}
+--- !u!1 &4050836961562679525 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4102210527957417845, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
+  m_PrefabInstance: {fileID: 61516012217149328}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &4268524691677756353 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: -4907141372150277039, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
+  m_PrefabInstance: {fileID: 61516012217149328}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &4384673096255486274 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4324564566571130578, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
+  m_PrefabInstance: {fileID: 61516012217149328}
+  m_PrefabAsset: {fileID: 0}
+--- !u!137 &4664134467567186993 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 4638947217716859809, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
+  m_PrefabInstance: {fileID: 61516012217149328}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &5134655172278747797 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5159851732544496901, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
+  m_PrefabInstance: {fileID: 61516012217149328}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &5344427598217328896 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: -3823075695308169584, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
+  m_PrefabInstance: {fileID: 61516012217149328}
+  m_PrefabAsset: {fileID: 0}
 --- !u!95 &5886233116731972097 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
+  m_PrefabInstance: {fileID: 61516012217149328}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &6895765697047964445 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6874782356359449741, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
+  m_PrefabInstance: {fileID: 61516012217149328}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8180163134838576961 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: -1054040794635226927, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
+  m_PrefabInstance: {fileID: 61516012217149328}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8894997758395378853 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8911477051710425909, guid: b521c56e73e777644b4aab878d0432cc, type: 3}
   m_PrefabInstance: {fileID: 61516012217149328}
   m_PrefabAsset: {fileID: 0}
