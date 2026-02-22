@@ -554,6 +554,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FareSystem
   rightHandMoneyModel: {fileID: 1578510934}
+  handAnimDuration: 0.3
+  hiddenOffset: {x: 0, y: -0.8, z: 0}
   uiPanel: {fileID: 846716532}
   textPrice: {fileID: 1598118908}
   textReceived: {fileID: 1374988463}
