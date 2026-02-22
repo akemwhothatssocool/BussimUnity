@@ -538,7 +538,7 @@ MonoBehaviour:
   useCrazyMode: 1
   autoLoopCrazy: 0
   loopInterval: 0.3
-  crazyLevel: 0.187
+  crazyLevel: 0.11
   skinRenderer: {fileID: 4664134467567186993}
 --- !u!1 &4050836961562679525 stripped
 GameObject:

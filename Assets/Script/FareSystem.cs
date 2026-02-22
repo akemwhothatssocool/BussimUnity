@@ -1,14 +1,30 @@
 ﻿using System.Collections;
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
 
 public class FareSystem : MonoBehaviour
 {
-    [Header("ตั้งค่าหน้าจอ")]
+    [Header("โมเดลมือขวา (ถือเงิน)")]
+    public GameObject rightHandMoneyModel;
+
+    [Header("⚙️ ตั้งค่าแอนิเมชันมือขวา")]
+    public float handAnimDuration = 0.3f;
+    public Vector3 hiddenOffset = new Vector3(0f, -0.8f, 0f);
+
+    private Vector3 visibleHandPos;
+    private Vector3 hiddenHandPos;
+    private Coroutine handCoroutine;
+
+    [Header("หน้าจอ UI (Canvas)")]
     public GameObject uiPanel;
-    public Text textPrice;
-    public Text textReceived;
-    public Text textChange;
+
+    [Header("ตัวเลขในแคปซูล (โชว์แค่ตัวเลข)")]
+    public TextMeshProUGUI textPrice;
+    public TextMeshProUGUI textReceived;
+    public TextMeshProUGUI textChange;
+
+    [Header("ข้อความแจ้งเตือน / คำพูด NPC")]
+    public TextMeshProUGUI textStatus;
 
     [Header("ข้อมูลระบบ")]
     public TicketData currentTicket;
@@ -44,11 +60,59 @@ public class FareSystem : MonoBehaviour
     void Start()
     {
         if (uiPanel != null) uiPanel.SetActive(false);
-        if (audioSource == null) audioSource = GetComponent<AudioSource>();
 
-        // ✅ FIX W1: เปลี่ยนจาก FindObjectOfType (obsolete) เป็น FindFirstObjectByType
-        if (playerController == null)
-            playerController = FindFirstObjectByType<BusPlayerController>();
+        if (rightHandMoneyModel != null)
+        {
+            visibleHandPos = rightHandMoneyModel.transform.localPosition;
+            hiddenHandPos = visibleHandPos + hiddenOffset;
+            rightHandMoneyModel.transform.localPosition = hiddenHandPos;
+        }
+
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
+        if (playerController == null) playerController = FindFirstObjectByType<BusPlayerController>();
+
+        ResetTextDisplay();
+    }
+
+    void Update()
+    {
+        if (!isTransactionActive) return;
+
+        if (Input.GetKeyDown(KeyCode.Space) ||
+            Input.GetKeyDown(KeyCode.Return) ||
+            Input.GetKeyDown(KeyCode.KeypadEnter))
+        {
+            SubmitTransaction();
+        }
+
+        if (Input.GetKeyDown(KeyCode.C) ||
+            Input.GetKeyDown(KeyCode.Backspace))
+        {
+            ClearChange();
+        }
+    }
+
+    public void AnimateHand(bool show)
+    {
+        if (rightHandMoneyModel == null) return;
+        if (handCoroutine != null) StopCoroutine(handCoroutine);
+        handCoroutine = StartCoroutine(HandSlideRoutine(show));
+    }
+
+    IEnumerator HandSlideRoutine(bool show)
+    {
+        Vector3 startPos = rightHandMoneyModel.transform.localPosition;
+        Vector3 targetPos = show ? visibleHandPos : hiddenHandPos;
+        float elapsedTime = 0f;
+
+        while (elapsedTime < handAnimDuration)
+        {
+            rightHandMoneyModel.transform.localPosition = Vector3.Lerp(startPos, targetPos, elapsedTime / handAnimDuration);
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+
+        rightHandMoneyModel.transform.localPosition = targetPos;
     }
 
     public void StartTransaction(PassengerAI passenger)
@@ -63,6 +127,8 @@ public class FareSystem : MonoBehaviour
         moneyReceived = 0;
         currentChange = 0;
         isTransactionActive = true;
+
+        AnimateHand(true);
 
         if (!passenger.isSittingSeat)
         {
@@ -80,9 +146,10 @@ public class FareSystem : MonoBehaviour
             StartCoroutine(SitThenPayRoutine("trigSitGiveR", handPosSitR));
         }
 
-        if (uiPanel != null) uiPanel.SetActive(false);
-        textPrice.color = Color.black;
-        textPrice.text = "ค่ารถ: " + currentTicket.price + " บาท";
+        if (uiPanel != null) uiPanel.SetActive(true);
+        if (textStatus != null) textStatus.text = "";
+
+        UpdateUI();
 
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
@@ -91,40 +158,26 @@ public class FareSystem : MonoBehaviour
     IEnumerator StandThenPayRoutine()
     {
         yield return new WaitForSeconds(0.1f);
-
-        if (npcAnimator != null)
-        {
-            npcAnimator.SetTrigger("trigStandGive");
-            Debug.Log("Triggered: trigStandGive");
-        }
-
+        if (npcAnimator != null) npcAnimator.SetTrigger("trigStandGive");
         yield return new WaitForSeconds(0.5f);
 
         if (npcSpawner != null && currentPassenger != null)
         {
             Transform handPos = currentPassenger.GetHandPosition();
-            if (handPos != null)
-                npcSpawner.SpawnMoney(currentTicket.price, handPos);
+            if (handPos != null) npcSpawner.SpawnMoney(currentTicket.price, handPos);
         }
     }
 
     IEnumerator SitThenPayRoutine(string giveTriggerName, Transform handPosOverride)
     {
         yield return new WaitForSeconds(0.1f);
-
-        if (npcAnimator != null)
-        {
-            npcAnimator.SetTrigger(giveTriggerName);
-            Debug.Log($"Triggered: {giveTriggerName}");
-        }
-
+        if (npcAnimator != null) npcAnimator.SetTrigger(giveTriggerName);
         yield return new WaitForSeconds(0.5f);
 
         if (npcSpawner != null && currentPassenger != null)
         {
             Transform handPos = handPosOverride != null ? handPosOverride : currentPassenger.GetHandPosition();
-            if (handPos != null)
-                npcSpawner.SpawnMoney(currentTicket.price, handPos);
+            if (handPos != null) npcSpawner.SpawnMoney(currentTicket.price, handPos);
         }
     }
 
@@ -140,7 +193,6 @@ public class FareSystem : MonoBehaviour
             else npcAnimator.SetTrigger("trigSitDoneR");
         }
 
-        if (uiPanel != null && !uiPanel.activeSelf) uiPanel.SetActive(true);
         UpdateUI();
     }
 
@@ -156,8 +208,6 @@ public class FareSystem : MonoBehaviour
     {
         if (!isTransactionActive) return;
         currentChange = 0;
-        textPrice.color = Color.black;
-        textPrice.text = "ค่ารถ: " + currentTicket.price + " บาท";
         UpdateUI();
     }
 
@@ -176,35 +226,52 @@ public class FareSystem : MonoBehaviour
 
     IEnumerator ShowResultAndClose(int diff)
     {
+        if (textStatus == null) yield break;
+
+        // ✅ 1. เช็คดักไว้เลยว่า "ถ้ายังไม่ได้รับเงินสักบาท" ให้เตือนแล้วหยุดการทำงาน
+        if (moneyReceived == 0)
+        {
+            textStatus.text = "รับเงินจากผู้โดยสารก่อน!";
+            textStatus.color = Color.red;
+            yield return new WaitForSeconds(1.5f);
+
+            // ลบข้อความทิ้งถ้าผู้เล่นยังเปิดหน้าจอคิดเงินอยู่
+            if (isTransactionActive) textStatus.text = "";
+
+            yield break; // หยุดตรงนี้ ไม่ปิดหน้าจอ ให้ผู้เล่นคิดเงินต่อได้
+        }
+
+        // 2. รับเงินมาแล้ว แต่เงินไม่พอค่าตั๋ว (ขาดเงิน)
         if (moneyReceived < currentTicket.price)
         {
-            textPrice.text = "ขาดเงิน " + (currentTicket.price - moneyReceived) + " บาท!";
-            textPrice.color = Color.red;
+            textStatus.text = "ขาดเงิน " + (currentTicket.price - moneyReceived) + " บาท!";
+            textStatus.color = Color.red;
             yield return new WaitForSeconds(2.0f);
             isTransactionActive = true;
-            textPrice.text = "ยังขาด " + (currentTicket.price - moneyReceived) + " บาท";
-            textPrice.color = Color.black;
+            textStatus.text = "";
         }
+        // 3. ทอนเงินพอดีเป๊ะ (ไม่ขาดไม่เกิน)
         else if (diff == 0)
         {
-            textPrice.text = successQuotes[Random.Range(0, successQuotes.Length)];
-            textPrice.color = Color.green;
+            textStatus.text = successQuotes[Random.Range(0, successQuotes.Length)];
+            textStatus.color = Color.green;
             yield return new WaitForSeconds(2.0f);
             CloseTransaction();
         }
+        // 4. ทอนเงินขาด (โดนด่า)
         else if (diff < 0)
         {
-            textPrice.text = failUnderQuotes[Random.Range(0, failUnderQuotes.Length)] + "\n(ขาด " + Mathf.Abs(diff) + ")";
-            textPrice.color = Color.red;
+            textStatus.text = failUnderQuotes[Random.Range(0, failUnderQuotes.Length)] + "\n(ขาด " + Mathf.Abs(diff) + ")";
+            textStatus.color = Color.red;
             yield return new WaitForSeconds(2.0f);
             isTransactionActive = true;
-            textPrice.text = "ยังขาด " + Mathf.Abs(diff) + " บาท";
-            textPrice.color = Color.black;
+            textStatus.text = "";
         }
+        // 5. ทอนเงินเกิน (ให้ทิป)
         else
         {
-            textPrice.text = failOverQuotes[Random.Range(0, failOverQuotes.Length)] + "\n(เกิน " + diff + ")";
-            textPrice.color = Color.yellow;
+            textStatus.text = failOverQuotes[Random.Range(0, failOverQuotes.Length)] + "\n(เกิน " + diff + ")";
+            textStatus.color = Color.yellow;
             yield return new WaitForSeconds(3.0f);
             CloseTransaction();
         }
@@ -212,19 +279,19 @@ public class FareSystem : MonoBehaviour
 
     void CloseTransaction()
     {
-        textPrice.text = "รอผู้โดยสาร...";
-        textPrice.color = Color.black;
+        ResetTextDisplay();
+
         moneyReceived = 0;
         currentChange = 0;
         isTransactionActive = false;
 
         if (uiPanel != null) uiPanel.SetActive(false);
 
-        // ✅ Unlock cursor ให้ผู้เล่นเดินได้
+        AnimateHand(false);
+
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
 
-        // ✅ Reset BusPlayerController state
         if (playerController != null)
             playerController.ResetInteraction();
 
@@ -244,28 +311,28 @@ public class FareSystem : MonoBehaviour
 
     void UpdateUI()
     {
-        if (uiPanel != null && uiPanel.activeSelf)
-        {
-            if (textPrice.color == Color.black && currentTicket != null)
-            {
-                if (!textPrice.text.Contains("ขาด") && !textPrice.text.Contains("เกิน"))
-                    textPrice.text = "ค่ารถ: " + currentTicket.price + " บาท";
-            }
+        if (textPrice != null && currentTicket != null)
+            textPrice.text = currentTicket.price.ToString();
 
-            if (textReceived != null)
-                textReceived.text = "รับมา: " + moneyReceived;
+        if (textReceived != null)
+            textReceived.text = moneyReceived.ToString();
 
-            if (textChange != null)
-                textChange.text = "เงินทอน: " + currentChange;
-        }
+        if (textChange != null)
+            textChange.text = currentChange.ToString();
+    }
+
+    void ResetTextDisplay()
+    {
+        if (textPrice != null) textPrice.text = "-";
+        if (textReceived != null) textReceived.text = "0";
+        if (textChange != null) textChange.text = "0";
+        if (textStatus != null) textStatus.text = "";
     }
 
     void PlayMoneySound(int amount)
     {
         if (audioSource == null) return;
-        if (amount <= 10)
-            audioSource.PlayOneShot(sfxCoin);
-        else
-            audioSource.PlayOneShot(sfxBank);
+        if (amount <= 10) audioSource.PlayOneShot(sfxCoin);
+        else audioSource.PlayOneShot(sfxBank);
     }
 }
