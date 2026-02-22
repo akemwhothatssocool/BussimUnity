@@ -1451,6 +1451,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.y
       value: -13.79
       objectReference: {fileID: 0}
+    - target: {fileID: -4343754043702338967, guid: ddaf4af22b390de4e959f4be58e00b82, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
     - target: {fileID: -207237707523981061, guid: ddaf4af22b390de4e959f4be58e00b82, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.84974
@@ -1498,6 +1502,18 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: ddaf4af22b390de4e959f4be58e00b82, type: 3}
       propertyPath: m_Name
       value: Bank3D
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: ddaf4af22b390de4e959f4be58e00b82, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 1159098043777426579, guid: ddaf4af22b390de4e959f4be58e00b82, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 2450620157510306349, guid: ddaf4af22b390de4e959f4be58e00b82, type: 3}
+      propertyPath: m_Layer
+      value: 8
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects:
@@ -4519,6 +4535,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: fe2de382f7281cf47b3e366e063511db, type: 3}
       propertyPath: m_Name
       value: Hand_R
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: fe2de382f7281cf47b3e366e063511db, type: 3}
+      propertyPath: m_Layer
+      value: 8
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
