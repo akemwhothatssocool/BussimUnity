@@ -7,7 +7,7 @@ public class FareSystem : MonoBehaviour
     [Header("โมเดลมือขวา (ถือเงิน)")]
     public GameObject rightHandMoneyModel;
 
-    [Header("⚙️ ตั้งค่าแอนิเมชันมือขวา")]
+    [Header("⚙️ ตั้งค่าแอนิเมชันมือขวา (สไลด์ขึ้นลง)")]
     public float handAnimDuration = 0.3f;
     public Vector3 hiddenOffset = new Vector3(0f, -0.8f, 0f);
 
@@ -15,8 +15,16 @@ public class FareSystem : MonoBehaviour
     private Vector3 hiddenHandPos;
     private Coroutine handCoroutine;
 
-    [Header("หน้าจอ UI (Canvas)")]
-    public GameObject uiPanel;
+    // ==========================================
+    // ✅ เปลี่ยนเป็นรับค่า Animator แทน
+    // ==========================================
+    [Header("แอนิเมชันกระบอกตั๋ว (มือซ้าย)")]
+    public Animator cylinderAnimator; // ลาก GameObject ที่มี Animator ของกระบอกตั๋วมาใส่
+    public string lidBoolName = "IsOpen"; // ชื่อ Parameter แบบ Bool ใน Animator ของคุณ
+    // ==========================================
+
+    [Header("หน้าจอ UI ที่ต้องการให้ซ่อน/แสดงตอนคิดเงิน")]
+    public GameObject[] paymentUIElements;
 
     [Header("ตัวเลขในแคปซูล (โชว์แค่ตัวเลข)")]
     public TextMeshProUGUI textPrice;
@@ -59,7 +67,7 @@ public class FareSystem : MonoBehaviour
 
     void Start()
     {
-        if (uiPanel != null) uiPanel.SetActive(false);
+        TogglePaymentUI(false);
 
         if (rightHandMoneyModel != null)
         {
@@ -92,6 +100,16 @@ public class FareSystem : MonoBehaviour
         }
     }
 
+    void TogglePaymentUI(bool isVisible)
+    {
+        if (paymentUIElements == null || paymentUIElements.Length == 0) return;
+
+        foreach (GameObject ui in paymentUIElements)
+        {
+            if (ui != null) ui.SetActive(isVisible);
+        }
+    }
+
     public void AnimateHand(bool show)
     {
         if (rightHandMoneyModel == null) return;
@@ -111,7 +129,6 @@ public class FareSystem : MonoBehaviour
             elapsedTime += Time.deltaTime;
             yield return null;
         }
-
         rightHandMoneyModel.transform.localPosition = targetPos;
     }
 
@@ -130,6 +147,12 @@ public class FareSystem : MonoBehaviour
 
         AnimateHand(true);
 
+        // ✅ สั่งเปิดฝากระบอกตั๋วผ่าน Animator (เซ็ต Bool ให้เป็น True)
+        if (cylinderAnimator != null)
+        {
+            cylinderAnimator.SetBool(lidBoolName, true);
+        }
+
         if (!passenger.isSittingSeat)
         {
             currentPoseState = 0;
@@ -146,7 +169,7 @@ public class FareSystem : MonoBehaviour
             StartCoroutine(SitThenPayRoutine("trigSitGiveR", handPosSitR));
         }
 
-        if (uiPanel != null) uiPanel.SetActive(true);
+        TogglePaymentUI(true);
         if (textStatus != null) textStatus.text = "";
 
         UpdateUI();
@@ -155,6 +178,7 @@ public class FareSystem : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
     }
 
+    // ... (ส่วน Routine ยื่นเงิน NPC เหมือนเดิม) ...
     IEnumerator StandThenPayRoutine()
     {
         yield return new WaitForSeconds(0.1f);
@@ -192,7 +216,6 @@ public class FareSystem : MonoBehaviour
             else if (currentPoseState == 1) npcAnimator.SetTrigger("trigSitDoneL");
             else npcAnimator.SetTrigger("trigSitDoneR");
         }
-
         UpdateUI();
     }
 
@@ -228,20 +251,15 @@ public class FareSystem : MonoBehaviour
     {
         if (textStatus == null) yield break;
 
-        // ✅ 1. เช็คดักไว้เลยว่า "ถ้ายังไม่ได้รับเงินสักบาท" ให้เตือนแล้วหยุดการทำงาน
         if (moneyReceived == 0)
         {
             textStatus.text = "รับเงินจากผู้โดยสารก่อน!";
             textStatus.color = Color.red;
             yield return new WaitForSeconds(1.5f);
-
-            // ลบข้อความทิ้งถ้าผู้เล่นยังเปิดหน้าจอคิดเงินอยู่
             if (isTransactionActive) textStatus.text = "";
-
-            yield break; // หยุดตรงนี้ ไม่ปิดหน้าจอ ให้ผู้เล่นคิดเงินต่อได้
+            yield break;
         }
 
-        // 2. รับเงินมาแล้ว แต่เงินไม่พอค่าตั๋ว (ขาดเงิน)
         if (moneyReceived < currentTicket.price)
         {
             textStatus.text = "ขาดเงิน " + (currentTicket.price - moneyReceived) + " บาท!";
@@ -250,7 +268,6 @@ public class FareSystem : MonoBehaviour
             isTransactionActive = true;
             textStatus.text = "";
         }
-        // 3. ทอนเงินพอดีเป๊ะ (ไม่ขาดไม่เกิน)
         else if (diff == 0)
         {
             textStatus.text = successQuotes[Random.Range(0, successQuotes.Length)];
@@ -258,7 +275,6 @@ public class FareSystem : MonoBehaviour
             yield return new WaitForSeconds(2.0f);
             CloseTransaction();
         }
-        // 4. ทอนเงินขาด (โดนด่า)
         else if (diff < 0)
         {
             textStatus.text = failUnderQuotes[Random.Range(0, failUnderQuotes.Length)] + "\n(ขาด " + Mathf.Abs(diff) + ")";
@@ -267,7 +283,6 @@ public class FareSystem : MonoBehaviour
             isTransactionActive = true;
             textStatus.text = "";
         }
-        // 5. ทอนเงินเกิน (ให้ทิป)
         else
         {
             textStatus.text = failOverQuotes[Random.Range(0, failOverQuotes.Length)] + "\n(เกิน " + diff + ")";
@@ -285,9 +300,14 @@ public class FareSystem : MonoBehaviour
         currentChange = 0;
         isTransactionActive = false;
 
-        if (uiPanel != null) uiPanel.SetActive(false);
-
+        TogglePaymentUI(false);
         AnimateHand(false);
+
+        // ✅ สั่งปิดฝากระบอกตั๋ว (เซ็ต Bool กลับเป็น False)
+        if (cylinderAnimator != null)
+        {
+            cylinderAnimator.SetBool(lidBoolName, false);
+        }
 
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
@@ -311,14 +331,9 @@ public class FareSystem : MonoBehaviour
 
     void UpdateUI()
     {
-        if (textPrice != null && currentTicket != null)
-            textPrice.text = currentTicket.price.ToString();
-
-        if (textReceived != null)
-            textReceived.text = moneyReceived.ToString();
-
-        if (textChange != null)
-            textChange.text = currentChange.ToString();
+        if (textPrice != null && currentTicket != null) textPrice.text = currentTicket.price.ToString();
+        if (textReceived != null) textReceived.text = moneyReceived.ToString();
+        if (textChange != null) textChange.text = currentChange.ToString();
     }
 
     void ResetTextDisplay()
