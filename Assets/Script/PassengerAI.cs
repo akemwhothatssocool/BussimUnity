@@ -5,11 +5,24 @@ using System;
 
 public class PassengerAI : MonoBehaviour, IInteractable
 {
-    public enum State { Boarding, FindingSeat, Seated, WaitingForFare, Paying, Riding, Exiting }
+    public enum State { Boarding, FindingSeat, Seated, WaitingForFare, HandExtended, Paying, Riding, Exiting }
     public State currentState = State.Boarding;
 
     [Header("การตั้งค่า")]
     public bool hasPaid = false;
+
+    public enum Mood { None, Happy, Neutral, Angry }
+
+    [Header("ระบบอารมณ์บนหัว")]
+    private SpriteRenderer moodIconRenderer;
+    public Sprite iconHappy;
+    public Sprite iconNeutral;
+    public Sprite iconAngry;
+
+    [Header("ตั้งค่าความอดทน (วินาที)")]
+    public float timeToNeutral = 10f;
+    public float timeToAngry = 20f;
+    private float currentWaitTime = 0f;
 
     [Header("Animation Settings")]
     public float speedSmoothTime = 0.1f;
@@ -24,6 +37,9 @@ public class PassengerAI : MonoBehaviour, IInteractable
     public Transform handPosSitL;
     public Transform handPosSitR;
 
+    [Header("Props")]
+    public GameObject moneyProp;
+
     [Header("ตำแหน่ง (Assign จาก Spawner)")]
     public Transform mySeatPoint;
     public Transform exitPoint;
@@ -36,9 +52,6 @@ public class PassengerAI : MonoBehaviour, IInteractable
     private FareSystem fareSystem;
     private bool isProcessingPayment = false;
 
-    // ============================================================
-    // IInteractable Implementation
-    // ============================================================
     public bool CanInteract()
     {
         return currentState == State.WaitingForFare
@@ -49,28 +62,51 @@ public class PassengerAI : MonoBehaviour, IInteractable
     public void Interact()
     {
         if (!CanInteract()) return;
+
+        currentState = State.HandExtended;
+
+        if (animator != null)
+        {
+            if (isRightSide) animator.SetTrigger("trigSitGiveR");
+            else animator.SetTrigger("trigSitGiveL");
+        }
+
+        if (moneyProp != null) moneyProp.SetActive(true);
+
         isProcessingPayment = true;
         StartCoroutine(PayRoutine());
     }
 
     public string GetPromptText()
     {
-        return "กด E เพื่อเก็บค่าโดยสาร";
+        if (currentState == State.WaitingForFare) return "กด E เพื่อรับเงิน";
+        if (currentState == State.HandExtended) return "คลิกเพื่อรับเงิน";
+        return "";
     }
-    // ============================================================
 
     public void SetSeat(Transform seatPoint)
     {
         mySeatPoint = seatPoint;
         isRightSide = seatPoint.name.Contains("Sit_R") || seatPoint.name.Contains("_R");
-        Debug.Log($"SetSeat: {seatPoint.name}, Right side: {isRightSide}");
     }
 
     void Start()
     {
-        // ✅ FIX W1: เปลี่ยนจาก FindObjectOfType (obsolete) เป็น FindFirstObjectByType
         fareSystem = FindFirstObjectByType<FareSystem>();
-        if (fareSystem == null) Debug.LogError("ไม่เจอ FareSystem ใน Scene!");
+
+        if (moneyProp != null) moneyProp.SetActive(false);
+
+        Transform iconTransform = transform.Find("MoodIcon");
+        if (iconTransform != null)
+        {
+            moodIconRenderer = iconTransform.GetComponent<SpriteRenderer>();
+        }
+        else
+        {
+            Debug.LogWarning($"{gameObject.name} หา MoodIcon ไม่เจอ!");
+        }
+
+        SetMood(Mood.None);
 
         if (agent != null)
         {
@@ -79,12 +115,15 @@ public class PassengerAI : MonoBehaviour, IInteractable
             agent.autoBraking = true;
             agent.stoppingDistance = 0.3f;
         }
-        else Debug.LogError($"{gameObject.name} NavMesh Agent is NULL!");
 
         GoToSeat();
     }
 
-    void Update() { UpdateAnimationSpeed(); }
+    void Update()
+    {
+        UpdateAnimationSpeed();
+        UpdateMoodOverTime();
+    }
 
     void UpdateAnimationSpeed()
     {
@@ -100,6 +139,23 @@ public class PassengerAI : MonoBehaviour, IInteractable
         animator.SetFloat("Speed", smoothSpeed);
     }
 
+    void UpdateMoodOverTime()
+    {
+        if (currentState == State.WaitingForFare)
+        {
+            currentWaitTime += Time.deltaTime;
+
+            if (currentWaitTime >= timeToAngry)
+            {
+                SetMood(Mood.Angry);
+            }
+            else if (currentWaitTime >= timeToNeutral)
+            {
+                SetMood(Mood.Neutral);
+            }
+        }
+    }
+
     void GoToSeat()
     {
         currentState = State.FindingSeat;
@@ -109,7 +165,6 @@ public class PassengerAI : MonoBehaviour, IInteractable
             agent.SetDestination(mySeatPoint.position);
             StartCoroutine(WaitUntilSeated());
         }
-        else Debug.LogError($"{gameObject.name} Agent or MySeatPoint is None!");
     }
 
     IEnumerator WaitUntilSeated()
@@ -121,7 +176,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
         {
             yield return null;
             elapsed += Time.deltaTime;
-            if (elapsed > timeout) { Debug.LogError($"{gameObject.name} Timeout waiting for path!"); yield break; }
+            if (elapsed > timeout) break;
         }
 
         animator.SetBool("isSitting", false);
@@ -131,21 +186,19 @@ public class PassengerAI : MonoBehaviour, IInteractable
         {
             yield return null;
             elapsed += Time.deltaTime;
-            if (elapsed > timeout) { Debug.LogWarning($"{gameObject.name} Timeout!"); break; }
+            if (elapsed > timeout) break;
         }
 
         agent.isStopped = true;
         agent.velocity = Vector3.zero;
-        yield return new WaitForSeconds(0.5f);
 
         if (mySeatPoint != null)
-            StartCoroutine(RotateTowards(mySeatPoint.rotation));
+            yield return StartCoroutine(SnapToSeat(mySeatPoint));
 
         if (isSittingSeat)
         {
             animator.SetBool("isSitting", true);
             yield return new WaitForSeconds(2.5f);
-            if (agent != null) agent.enabled = false;
         }
         else
         {
@@ -154,33 +207,46 @@ public class PassengerAI : MonoBehaviour, IInteractable
         }
 
         currentState = State.WaitingForFare;
-        Debug.Log($"{gameObject.name} Ready for payment!");
+
+        currentWaitTime = 0f;
+        SetMood(Mood.Happy);
     }
 
-    IEnumerator RotateTowards(Quaternion targetRotation)
+    IEnumerator SnapToSeat(Transform seatPoint)
     {
-        float duration = 0.5f;
+        if (agent != null)
+        {
+            agent.isStopped = true;
+            agent.velocity = Vector3.zero;
+        }
+
+        if (animator != null) animator.SetFloat("Speed", 0f);
+        if (agent != null) agent.enabled = false;
+
+        float duration = 0.6f;
         float elapsed = 0f;
-        Quaternion startRotation = transform.rotation;
+        Vector3 startPos = transform.position;
+        Quaternion startRot = transform.rotation;
 
         while (elapsed < duration)
         {
-            transform.rotation = Quaternion.Slerp(startRotation, targetRotation, elapsed / duration);
+            float t = elapsed / duration;
+            transform.position = Vector3.Lerp(startPos, seatPoint.position, t);
+            transform.rotation = Quaternion.Slerp(startRot, seatPoint.rotation, t);
             elapsed += Time.deltaTime;
             yield return null;
         }
-        transform.rotation = targetRotation;
+
+        transform.position = seatPoint.position;
+        transform.rotation = seatPoint.rotation;
     }
 
     IEnumerator PayRoutine()
     {
-        Debug.Log($"{gameObject.name} Starting payment");
         currentState = State.Paying;
 
         if (fareSystem != null)
             fareSystem.StartTransaction(this);
-        else
-            Debug.LogError("FareSystem เป็น null!");
 
         yield return new WaitForSeconds(1.0f);
         isProcessingPayment = false;
@@ -193,16 +259,23 @@ public class PassengerAI : MonoBehaviour, IInteractable
         else if (isRightSide) hand = handPosSitR;
         else hand = handPosSitL;
 
-        if (hand == null)
-            Debug.LogError($"{gameObject.name} Hand Transform is NULL!");
+        if (hand != null)
+        {
+            Collider handCollider = hand.GetComponent<Collider>();
+            if (handCollider != null) handCollider.enabled = false;
+        }
+
         return hand;
     }
 
     public void PaymentCompleted()
     {
-        Debug.Log($"{gameObject.name} Payment completed");
         hasPaid = true;
         currentState = State.Riding;
+
+        // ✅ แก้ตรงนี้ครับ: เปลี่ยนเป็นสั่งปิดไอคอนอารมณ์ (None) ทันทีที่จ่ายเงินเสร็จ
+        SetMood(Mood.None);
+
         StartCoroutine(RideAndGetOff());
     }
 
@@ -210,6 +283,8 @@ public class PassengerAI : MonoBehaviour, IInteractable
     {
         float rideTime = UnityEngine.Random.Range(10f, 20f);
         yield return new WaitForSeconds(rideTime);
+
+        SetMood(Mood.None);
 
         currentState = State.Exiting;
 
@@ -224,7 +299,6 @@ public class PassengerAI : MonoBehaviour, IInteractable
         {
             agent.isStopped = false;
             agent.SetDestination(exitPoint.position);
-            Debug.Log($"{gameObject.name} Walking to exit");
 
             float timeout = 5f;
             float elapsed = 0f;
@@ -232,7 +306,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
             {
                 yield return null;
                 elapsed += Time.deltaTime;
-                if (elapsed > timeout) { Debug.LogWarning("Path timeout!"); break; }
+                if (elapsed > timeout) break;
             }
 
             elapsed = 0f;
@@ -240,16 +314,37 @@ public class PassengerAI : MonoBehaviour, IInteractable
             {
                 yield return null;
                 elapsed += Time.deltaTime;
-                if (elapsed > 30f) { Debug.LogWarning("Exit walk timeout!"); break; }
+                if (elapsed > 30f) break;
             }
-        }
-        else
-        {
-            if (exitPoint == null) Debug.LogError($"{gameObject.name} exitPoint is NULL!");
         }
 
         onExitBus?.Invoke();
-        Debug.Log($"{gameObject.name} Exited the bus");
         Destroy(gameObject);
+    }
+
+    public void SetMood(Mood newMood)
+    {
+        if (moodIconRenderer == null) return;
+
+        if (newMood == Mood.None)
+        {
+            moodIconRenderer.gameObject.SetActive(false);
+            return;
+        }
+
+        moodIconRenderer.gameObject.SetActive(true);
+
+        switch (newMood)
+        {
+            case Mood.Happy:
+                moodIconRenderer.sprite = iconHappy;
+                break;
+            case Mood.Neutral:
+                moodIconRenderer.sprite = iconNeutral;
+                break;
+            case Mood.Angry:
+                moodIconRenderer.sprite = iconAngry;
+                break;
+        }
     }
 }

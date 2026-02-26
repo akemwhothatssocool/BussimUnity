@@ -5,9 +5,14 @@ public class Money3DInteract : MonoBehaviour
     [Header("ค่าเงินของชิ้นนี้")]
     public int moneyValue = 20;
 
+    [Header("✨ โมเดล 3D ที่ต้องการให้ขยับ")]
+    public Transform visualModel; // 🌟 ลาก "ตัวลูก" ที่เป็นโมเดลภาพ 3D มาใส่ช่องนี้
+
     [Header("✨ เอฟเฟกต์ตอนเมาส์ชี้ (Hover)")]
-    public float hoverOffsetX = 0.03f; // ระยะที่จะให้เด้งออกมาในแกน X Local (ปรับค่าได้)
-    public float hoverSpeed = 10f;     // ความเร็วในการเด้งและหดกลับ
+    public float hoverOffsetX = 0.05f;
+    public float hoverOffsetY = 0f; // ✅ เพิ่มแกน Y 
+    public float hoverOffsetZ = 0f; // ✅ เพิ่มแกน Z ให้ด้วยเผื่อได้ใช้
+    public float hoverSpeed = 15f;
 
     private FareSystem fareSystem;
     private Vector3 originalLocalPos;
@@ -16,19 +21,23 @@ public class Money3DInteract : MonoBehaviour
 
     void Start()
     {
-        // หาตัว FareSystem ในฉากอัตโนมัติ
         fareSystem = FindFirstObjectByType<FareSystem>();
 
-        // จำตำแหน่งเดิมของมันเอาไว้ตั้งแต่เริ่ม
-        originalLocalPos = transform.localPosition;
+        // จำตำแหน่งเดิมของ "ตัวลูก" เอาไว้
+        if (visualModel != null)
+        {
+            originalLocalPos = visualModel.localPosition;
+        }
+        else
+        {
+            Debug.LogWarning("⚠️ อย่าลืมลากโมเดลตัวลูก มาใส่ในช่อง Visual Model นะครับ!");
+        }
     }
 
     void Update()
     {
-        // รีเซ็ตสถานะทุกเฟรมก่อน
         isHovered = false;
 
-        // เช็คว่าเมาส์โชว์อยู่ (เปิดหน้าคิดเงิน)
         if (Cursor.visible)
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -36,34 +45,34 @@ public class Money3DInteract : MonoBehaviour
 
             if (Physics.Raycast(ray, out hit))
             {
-                // ถ้าเลเซอร์ยิงโดนตัวเอง แปลว่าเมาส์กำลังชี้อยู่!
+                // ถ้ายิงเลเซอร์ชนตัวพ่อ (ซึ่งตัวพ่ออยู่นิ่งๆ ตลอดเวลา)
                 if (hit.collider.gameObject == gameObject)
                 {
                     isHovered = true;
 
-                    // ถ้าชี้อยู่แล้วกดคลิกซ้ายด้วย
                     if (Input.GetMouseButtonDown(0))
                     {
-                        if (fareSystem != null)
-                        {
-                            fareSystem.AddChange(moneyValue);
-                        }
+                        if (fareSystem != null) fareSystem.AddChange(moneyValue);
                     }
                 }
             }
         }
 
-        // 🎯 สั่งการขยับ: ถ้าชี้อยู่ ให้บวกแกน X เพิ่มเข้าไป ถ้าไม่ชี้ ให้กลับเป้าหมายเดิม
-        if (isHovered)
+        // 🎯 สั่งขยับ "ตัวลูก" แทน 
+        if (visualModel != null)
         {
-            targetLocalPos = originalLocalPos + new Vector3(hoverOffsetX, 0f, 0f);
-        }
-        else
-        {
-            targetLocalPos = originalLocalPos;
-        }
+            if (isHovered)
+            {
+                // ✅ เอาค่าแกน X, Y, Z มาบวกเพิ่มตรงนี้เลย
+                targetLocalPos = originalLocalPos + new Vector3(hoverOffsetX, hoverOffsetY, hoverOffsetZ);
+            }
+            else
+            {
+                targetLocalPos = originalLocalPos;
+            }
 
-        // เคลื่อนที่อย่างสมูท (Lerp) จากจุดปัจจุบัน ไปยังจุดเป้าหมาย
-        transform.localPosition = Vector3.Lerp(transform.localPosition, targetLocalPos, Time.deltaTime * hoverSpeed);
+            // ตัวลูกขยับ แต่ตัวพ่อ(Collider) ยังอยู่ที่เดิม!
+            visualModel.localPosition = Vector3.Lerp(visualModel.localPosition, targetLocalPos, Time.deltaTime * hoverSpeed);
+        }
     }
 }

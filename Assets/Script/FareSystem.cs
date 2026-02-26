@@ -15,13 +15,9 @@ public class FareSystem : MonoBehaviour
     private Vector3 hiddenHandPos;
     private Coroutine handCoroutine;
 
-    // ==========================================
-    // ✅ เปลี่ยนเป็นรับค่า Animator แทน
-    // ==========================================
     [Header("แอนิเมชันกระบอกตั๋ว (มือซ้าย)")]
-    public Animator cylinderAnimator; // ลาก GameObject ที่มี Animator ของกระบอกตั๋วมาใส่
-    public string lidBoolName = "IsOpen"; // ชื่อ Parameter แบบ Bool ใน Animator ของคุณ
-    // ==========================================
+    public Animator cylinderAnimator;
+    public string lidBoolName = "IsOpen";
 
     [Header("หน้าจอ UI ที่ต้องการให้ซ่อน/แสดงตอนคิดเงิน")]
     public GameObject[] paymentUIElements;
@@ -34,11 +30,16 @@ public class FareSystem : MonoBehaviour
     [Header("ข้อความแจ้งเตือน / คำพูด NPC")]
     public TextMeshProUGUI textStatus;
 
+    [Header("ราคาค่าโดยสาร")]
+    public int[] possiblePrices = { 8, 10, 12, 15, 20 };
+
     [Header("ข้อมูลระบบ")]
     public TicketData currentTicket;
     public int moneyReceived;
     public int currentChange;
     private bool isTransactionActive = false;
+    private bool waitingForCollection = false;
+    private int npcPlannedPayment = 0;
 
     [Header("NPC ปัจจุบัน")]
     public PassengerAI currentPassenger;
@@ -54,8 +55,8 @@ public class FareSystem : MonoBehaviour
 
     [Header("เสียงเอฟเฟกต์")]
     public AudioSource audioSource;
-    public AudioClip sfxCoin;
-    public AudioClip sfxBank;
+    public AudioClip[] sfxCoins;
+    public AudioClip[] sfxBanks;
 
     [Header("คลังคำศัพท์")]
     public string[] successQuotes = new string[] { "ขอบคุณครับ", "เชิญข้างในเลยครับ" };
@@ -84,6 +85,16 @@ public class FareSystem : MonoBehaviour
 
     void Update()
     {
+        if (waitingForCollection)
+        {
+            if (Input.GetMouseButtonDown(0))
+            {
+                waitingForCollection = false;
+                OpenPaymentUI();
+            }
+            return;
+        }
+
         if (!isTransactionActive) return;
 
         if (Input.GetKeyDown(KeyCode.Space) ||
@@ -100,14 +111,35 @@ public class FareSystem : MonoBehaviour
         }
     }
 
+    int GenerateRealisticPayment(int price)
+    {
+        int[] bills = { 1000, 500, 100, 50, 20 };
+        int strategy = Random.Range(0, 3);
+
+        if (strategy == 0)
+        {
+            foreach (int bill in bills)
+                if (bill >= price) return bill;
+        }
+        else if (strategy == 1)
+        {
+            return price;
+        }
+        else
+        {
+            int[] biggerBills = { 20, 50, 100, 500, 1000 };
+            foreach (int bill in biggerBills)
+                if (bill > price) return bill;
+        }
+
+        return price;
+    }
+
     void TogglePaymentUI(bool isVisible)
     {
         if (paymentUIElements == null || paymentUIElements.Length == 0) return;
-
         foreach (GameObject ui in paymentUIElements)
-        {
             if (ui != null) ui.SetActive(isVisible);
-        }
     }
 
     public void AnimateHand(bool show)
@@ -139,52 +171,64 @@ public class FareSystem : MonoBehaviour
 
         if (currentTicket == null)
             currentTicket = ScriptableObject.CreateInstance<TicketData>();
-        currentTicket.price = 20;
+
+        currentTicket.price = possiblePrices[Random.Range(0, possiblePrices.Length)];
+        npcPlannedPayment = GenerateRealisticPayment(currentTicket.price);
+
+        Debug.Log($"ราคา: {currentTicket.price} ฿ | NPC จ่าย: {npcPlannedPayment} ฿ | ต้องทอน: {npcPlannedPayment - currentTicket.price} ฿");
 
         moneyReceived = 0;
         currentChange = 0;
-        isTransactionActive = true;
 
         AnimateHand(true);
 
-        // ✅ สั่งเปิดฝากระบอกตั๋วผ่าน Animator (เซ็ต Bool ให้เป็น True)
         if (cylinderAnimator != null)
-        {
             cylinderAnimator.SetBool(lidBoolName, true);
-        }
 
         if (!passenger.isSittingSeat)
         {
             currentPoseState = 0;
-            StartCoroutine(StandThenPayRoutine());
+            StartCoroutine(SpawnOnlyRoutine(passenger.GetHandPosition()));
         }
         else if (!passenger.isRightSide)
         {
             currentPoseState = 1;
-            StartCoroutine(SitThenPayRoutine("trigSitGiveL", handPosSitL));
+            Transform handPos = handPosSitL != null ? handPosSitL : passenger.GetHandPosition();
+            StartCoroutine(SpawnOnlyRoutine(handPos));
         }
         else
         {
             currentPoseState = 2;
-            StartCoroutine(SitThenPayRoutine("trigSitGiveR", handPosSitR));
+            Transform handPos = handPosSitR != null ? handPosSitR : passenger.GetHandPosition();
+            StartCoroutine(SpawnOnlyRoutine(handPos));
         }
 
+        waitingForCollection = true;
+    }
+
+    void OpenPaymentUI()
+    {
+        isTransactionActive = true;
         TogglePaymentUI(true);
         if (textStatus != null) textStatus.text = "";
-
         UpdateUI();
 
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
     }
 
-    // ... (ส่วน Routine ยื่นเงิน NPC เหมือนเดิม) ...
+    IEnumerator SpawnOnlyRoutine(Transform handPos)
+    {
+        yield return new WaitForSeconds(0.3f);
+        if (npcSpawner != null && handPos != null)
+            npcSpawner.SpawnMoney(npcPlannedPayment, handPos);
+    }
+
     IEnumerator StandThenPayRoutine()
     {
         yield return new WaitForSeconds(0.1f);
         if (npcAnimator != null) npcAnimator.SetTrigger("trigStandGive");
         yield return new WaitForSeconds(0.5f);
-
         if (npcSpawner != null && currentPassenger != null)
         {
             Transform handPos = currentPassenger.GetHandPosition();
@@ -197,7 +241,6 @@ public class FareSystem : MonoBehaviour
         yield return new WaitForSeconds(0.1f);
         if (npcAnimator != null) npcAnimator.SetTrigger(giveTriggerName);
         yield return new WaitForSeconds(0.5f);
-
         if (npcSpawner != null && currentPassenger != null)
         {
             Transform handPos = handPosOverride != null ? handPosOverride : currentPassenger.GetHandPosition();
@@ -296,18 +339,22 @@ public class FareSystem : MonoBehaviour
     {
         ResetTextDisplay();
 
+        // ✅ คำนวณกำไร: รับมา - ทอนออกไป แล้วเพิ่มเข้ากระเป๋าผู้เล่น
+        int profit = moneyReceived - currentChange;
+        if (PlayerWallet.Instance != null)
+            PlayerWallet.Instance.AddMoney(profit);
+
         moneyReceived = 0;
         currentChange = 0;
+        npcPlannedPayment = 0;
         isTransactionActive = false;
+        waitingForCollection = false;
 
         TogglePaymentUI(false);
         AnimateHand(false);
 
-        // ✅ สั่งปิดฝากระบอกตั๋ว (เซ็ต Bool กลับเป็น False)
         if (cylinderAnimator != null)
-        {
             cylinderAnimator.SetBool(lidBoolName, false);
-        }
 
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
@@ -331,23 +378,34 @@ public class FareSystem : MonoBehaviour
 
     void UpdateUI()
     {
-        if (textPrice != null && currentTicket != null) textPrice.text = currentTicket.price.ToString();
-        if (textReceived != null) textReceived.text = moneyReceived.ToString();
-        if (textChange != null) textChange.text = currentChange.ToString();
+        if (textPrice != null && currentTicket != null)
+            textPrice.text = currentTicket.price.ToString() + " ฿";
+        if (textReceived != null)
+            textReceived.text = moneyReceived.ToString() + " ฿";
+        if (textChange != null)
+            textChange.text = currentChange.ToString() + " ฿";
     }
 
     void ResetTextDisplay()
     {
-        if (textPrice != null) textPrice.text = "-";
-        if (textReceived != null) textReceived.text = "0";
-        if (textChange != null) textChange.text = "0";
+        if (textPrice != null) textPrice.text = "- ฿";
+        if (textReceived != null) textReceived.text = "0 ฿";
+        if (textChange != null) textChange.text = "0 ฿";
         if (textStatus != null) textStatus.text = "";
     }
 
     void PlayMoneySound(int amount)
     {
         if (audioSource == null) return;
-        if (amount <= 10) audioSource.PlayOneShot(sfxCoin);
-        else audioSource.PlayOneShot(sfxBank);
+        if (amount <= 10)
+        {
+            if (sfxCoins != null && sfxCoins.Length > 0)
+                audioSource.PlayOneShot(sfxCoins[Random.Range(0, sfxCoins.Length)]);
+        }
+        else
+        {
+            if (sfxBanks != null && sfxBanks.Length > 0)
+                audioSource.PlayOneShot(sfxBanks[Random.Range(0, sfxBanks.Length)]);
+        }
     }
 }
