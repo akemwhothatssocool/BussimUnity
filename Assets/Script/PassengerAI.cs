@@ -46,11 +46,16 @@ public class PassengerAI : MonoBehaviour, IInteractable
     public bool isSittingSeat = false;
     public bool isRightSide = false;
 
+    [Header("ระบบรถ")]
+    public CityManager cityManager;
+
     [Header("Events")]
     public Action onExitBus;
 
     private FareSystem fareSystem;
     private bool isProcessingPayment = false;
+
+    Rigidbody rb;
 
     public bool CanInteract()
     {
@@ -93,18 +98,16 @@ public class PassengerAI : MonoBehaviour, IInteractable
     void Start()
     {
         fareSystem = FindFirstObjectByType<FareSystem>();
+        rb = GetComponent<Rigidbody>();
 
         if (moneyProp != null) moneyProp.SetActive(false);
 
         Transform iconTransform = transform.Find("MoodIcon");
+
         if (iconTransform != null)
-        {
             moodIconRenderer = iconTransform.GetComponent<SpriteRenderer>();
-        }
         else
-        {
             Debug.LogWarning($"{gameObject.name} หา MoodIcon ไม่เจอ!");
-        }
 
         SetMood(Mood.None);
 
@@ -116,7 +119,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
             agent.stoppingDistance = 0.3f;
         }
 
-        GoToSeat();
+        // ❌ ไม่เรียก GoToSeat แล้ว
     }
 
     void Update()
@@ -131,11 +134,19 @@ public class PassengerAI : MonoBehaviour, IInteractable
 
         Vector3 velocity = agent.velocity;
         velocity.y = 0;
+
         float speed = velocity.magnitude;
         float normalizedSpeed = speed / agent.speed;
 
         float currentSpeed = animator.GetFloat("Speed");
-        float smoothSpeed = Mathf.SmoothDamp(currentSpeed, normalizedSpeed, ref speedVelocity, speedSmoothTime);
+
+        float smoothSpeed = Mathf.SmoothDamp(
+            currentSpeed,
+            normalizedSpeed,
+            ref speedVelocity,
+            speedSmoothTime
+        );
+
         animator.SetFloat("Speed", smoothSpeed);
     }
 
@@ -146,23 +157,21 @@ public class PassengerAI : MonoBehaviour, IInteractable
             currentWaitTime += Time.deltaTime;
 
             if (currentWaitTime >= timeToAngry)
-            {
                 SetMood(Mood.Angry);
-            }
             else if (currentWaitTime >= timeToNeutral)
-            {
                 SetMood(Mood.Neutral);
-            }
         }
     }
 
     void GoToSeat()
     {
         currentState = State.FindingSeat;
+
         if (agent != null && mySeatPoint != null)
         {
             agent.isStopped = false;
             agent.SetDestination(mySeatPoint.position);
+
             StartCoroutine(WaitUntilSeated());
         }
     }
@@ -180,6 +189,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
         }
 
         animator.SetBool("isSitting", false);
+
         elapsed = 0f;
 
         while (agent.remainingDistance > 0.5f)
@@ -207,8 +217,8 @@ public class PassengerAI : MonoBehaviour, IInteractable
         }
 
         currentState = State.WaitingForFare;
-
         currentWaitTime = 0f;
+
         SetMood(Mood.Happy);
     }
 
@@ -221,19 +231,24 @@ public class PassengerAI : MonoBehaviour, IInteractable
         }
 
         if (animator != null) animator.SetFloat("Speed", 0f);
+
         if (agent != null) agent.enabled = false;
 
         float duration = 0.6f;
         float elapsed = 0f;
+
         Vector3 startPos = transform.position;
         Quaternion startRot = transform.rotation;
 
         while (elapsed < duration)
         {
             float t = elapsed / duration;
+
             transform.position = Vector3.Lerp(startPos, seatPoint.position, t);
             transform.rotation = Quaternion.Slerp(startRot, seatPoint.rotation, t);
+
             elapsed += Time.deltaTime;
+
             yield return null;
         }
 
@@ -249,20 +264,27 @@ public class PassengerAI : MonoBehaviour, IInteractable
             fareSystem.StartTransaction(this);
 
         yield return new WaitForSeconds(1.0f);
+
         isProcessingPayment = false;
     }
 
     public Transform GetHandPosition()
     {
         Transform hand = null;
-        if (!isSittingSeat) hand = handPosStand;
-        else if (isRightSide) hand = handPosSitR;
-        else hand = handPosSitL;
+
+        if (!isSittingSeat)
+            hand = handPosStand;
+        else if (isRightSide)
+            hand = handPosSitR;
+        else
+            hand = handPosSitL;
 
         if (hand != null)
         {
             Collider handCollider = hand.GetComponent<Collider>();
-            if (handCollider != null) handCollider.enabled = false;
+
+            if (handCollider != null)
+                handCollider.enabled = false;
         }
 
         return hand;
@@ -271,9 +293,9 @@ public class PassengerAI : MonoBehaviour, IInteractable
     public void PaymentCompleted()
     {
         hasPaid = true;
+
         currentState = State.Riding;
 
-        // ✅ แก้ตรงนี้ครับ: เปลี่ยนเป็นสั่งปิดไอคอนอารมณ์ (None) ทันทีที่จ่ายเงินเสร็จ
         SetMood(Mood.None);
 
         StartCoroutine(RideAndGetOff());
@@ -282,16 +304,22 @@ public class PassengerAI : MonoBehaviour, IInteractable
     IEnumerator RideAndGetOff()
     {
         float rideTime = UnityEngine.Random.Range(10f, 20f);
+
         yield return new WaitForSeconds(rideTime);
 
         SetMood(Mood.None);
 
         currentState = State.Exiting;
 
+        if (cityManager != null)
+            yield return new WaitUntil(() => Mathf.Abs(cityManager._currentSpeed) < 0.05f);
+
         if (isSittingSeat)
         {
             animator.SetBool("isSitting", false);
+
             yield return new WaitForSeconds(2.0f);
+
             if (agent != null) agent.enabled = true;
         }
 
@@ -302,23 +330,30 @@ public class PassengerAI : MonoBehaviour, IInteractable
 
             float timeout = 5f;
             float elapsed = 0f;
+
             while (agent.pathPending)
             {
                 yield return null;
+
                 elapsed += Time.deltaTime;
+
                 if (elapsed > timeout) break;
             }
 
             elapsed = 0f;
+
             while (agent.remainingDistance > 1.0f)
             {
                 yield return null;
+
                 elapsed += Time.deltaTime;
+
                 if (elapsed > 30f) break;
             }
         }
 
         onExitBus?.Invoke();
+
         Destroy(gameObject);
     }
 
@@ -336,15 +371,50 @@ public class PassengerAI : MonoBehaviour, IInteractable
 
         switch (newMood)
         {
-            case Mood.Happy:
-                moodIconRenderer.sprite = iconHappy;
-                break;
-            case Mood.Neutral:
-                moodIconRenderer.sprite = iconNeutral;
-                break;
-            case Mood.Angry:
-                moodIconRenderer.sprite = iconAngry;
-                break;
+            case Mood.Happy: moodIconRenderer.sprite = iconHappy; break;
+            case Mood.Neutral: moodIconRenderer.sprite = iconNeutral; break;
+            case Mood.Angry: moodIconRenderer.sprite = iconAngry; break;
         }
+    }
+
+    // ===============================
+    // ระบบรอป้ายรถ
+    // ===============================
+
+    public void WaitAtStop(Transform waitPoint)
+    {
+        if (agent != null)
+        {
+            agent.isStopped = true;
+            agent.enabled = false;
+        }
+
+        if (rb != null)
+        {
+            rb.isKinematic = true;
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
+        transform.position = waitPoint.position;
+        transform.rotation = waitPoint.rotation;
+
+        transform.SetParent(waitPoint);
+    }
+
+    public void BoardBus()
+    {
+        transform.SetParent(null);
+
+        if (rb != null)
+            rb.isKinematic = false;
+
+        if (agent != null)
+        {
+            agent.enabled = true;
+            agent.isStopped = false;
+        }
+
+        GoToSeat();
     }
 }

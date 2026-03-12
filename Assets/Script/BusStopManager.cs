@@ -8,6 +8,9 @@ public class BusStopManager : MonoBehaviour
     public Transform spawnPoint;
     public Transform exitPoint;
 
+    [Header("ระบบรถ")]
+    public CityManager cityManager;
+
     [Header("Points")]
     public Transform[] seatPoints;
     public Transform[] standPoints;
@@ -19,15 +22,16 @@ public class BusStopManager : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.K))
         {
-            SpawnPassenger();
+            PassengerAI newPassenger = SpawnPassenger();
+            if (newPassenger != null) newPassenger.BoardBus(); // ถ้ากด K ให้เดินขึ้นรถเลย
         }
     }
 
-    public void SpawnPassenger()
+    // ✅ แก้ไข: เปลี่ยนจาก void เป็น PassengerAI เพื่อส่งตัวละครออกไปให้ป้ายสั่งงาน
+    public PassengerAI SpawnPassenger()
     {
-        if (passengerPrefab == null || spawnPoint == null) return;
+        if (passengerPrefab == null || spawnPoint == null) return null;
 
-        // 1. หาที่นั่ง/ยืน
         Transform targetPoint = GetAvailableSeat();
         bool isSitting = true;
 
@@ -37,20 +41,18 @@ public class BusStopManager : MonoBehaviour
             isSitting = false;
         }
 
-        if (targetPoint == null) return; // รถเต็มทั้งนั่งและยืน
+        if (targetPoint == null) return null;
 
-        // 2. สร้างตัวละคร
-        GameObject p = Instantiate(passengerPrefab, spawnPoint.position, Quaternion.identity);
+        GameObject p = Instantiate(passengerPrefab, spawnPoint.position, spawnPoint.rotation);
         PassengerAI ai = p.GetComponent<PassengerAI>();
 
         if (ai != null)
         {
-            // ไม่ต้องมี ai.interactTextUI แล้ว
+            ai.cityManager = cityManager;
             ai.SetSeat(targetPoint);
             ai.exitPoint = exitPoint;
             ai.isSittingSeat = isSitting;
 
-            // Subscribe event คืนที่นั่ง/จุดยืน
             if (isSitting)
             {
                 occupiedSeats.Add(targetPoint);
@@ -61,20 +63,21 @@ public class BusStopManager : MonoBehaviour
                 occupiedStandPoints.Add(targetPoint);
                 ai.onExitBus += () => FreeStandPoint(targetPoint);
             }
+
+            // ✅ สั่งให้ยืนรอที่ป้ายทันทีที่เกิด
+            ai.WaitAtStop(spawnPoint);
         }
+
+        return ai; // ส่งตัว AI กลับไป
     }
 
     Transform GetAvailableSeat()
     {
         if (seatPoints == null || seatPoints.Length == 0) return null;
-
         List<Transform> available = new List<Transform>();
         foreach (Transform t in seatPoints)
-        {
             if (t != null && !occupiedSeats.Contains(t))
                 available.Add(t);
-        }
-
         if (available.Count == 0) return null;
         return available[Random.Range(0, available.Count)];
     }
@@ -82,27 +85,21 @@ public class BusStopManager : MonoBehaviour
     Transform GetAvailableStandPoint()
     {
         if (standPoints == null || standPoints.Length == 0) return null;
-
         List<Transform> available = new List<Transform>();
         foreach (Transform t in standPoints)
-        {
             if (t != null && !occupiedStandPoints.Contains(t))
                 available.Add(t);
-        }
-
         if (available.Count == 0) return null;
         return available[Random.Range(0, available.Count)];
     }
 
     public void FreeSeat(Transform seat)
     {
-        if (seat != null && occupiedSeats.Contains(seat))
-            occupiedSeats.Remove(seat);
+        if (seat != null && occupiedSeats.Contains(seat)) occupiedSeats.Remove(seat);
     }
 
     public void FreeStandPoint(Transform spot)
     {
-        if (spot != null && occupiedStandPoints.Contains(spot))
-            occupiedStandPoints.Remove(spot);
+        if (spot != null && occupiedStandPoints.Contains(spot)) occupiedStandPoints.Remove(spot);
     }
 }
