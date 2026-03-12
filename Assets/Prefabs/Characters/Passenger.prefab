@@ -567,7 +567,7 @@ NavMeshAgent:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 872543485566032577}
-  m_Enabled: 1
+  m_Enabled: 0
   m_AgentTypeID: 0
   m_Radius: 0.2
   m_Speed: 1.5
@@ -599,6 +599,8 @@ MonoBehaviour:
   iconHappy: {fileID: -1981508611, guid: 3bb75f93f511e214cb0823a644a0f858, type: 3}
   iconNeutral: {fileID: 1141985910, guid: 3bb75f93f511e214cb0823a644a0f858, type: 3}
   iconAngry: {fileID: -219554337, guid: 3bb75f93f511e214cb0823a644a0f858, type: 3}
+  timeToNeutral: 10
+  timeToAngry: 20
   speedSmoothTime: 0.1
   agent: {fileID: 7971242771786306718}
   animator: {fileID: 5886233116731972097}
@@ -610,6 +612,7 @@ MonoBehaviour:
   exitPoint: {fileID: 0}
   isSittingSeat: 0
   isRightSide: 0
+  cityManager: {fileID: 0}
 --- !u!114 &9113580599911037142
 MonoBehaviour:
   m_ObjectHideFlags: 0

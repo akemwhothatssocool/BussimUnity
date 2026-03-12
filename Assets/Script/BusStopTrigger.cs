@@ -47,14 +47,16 @@ public class BusStopTrigger : MonoBehaviour
         if (_waitingPassenger != null)
         {
             _waitingPassenger.BoardBus();
-            _waitingPassenger = null; // เคลียร์คิวให้ว่างสำหรับรอบหน้า
+            _waitingPassenger = null;
+
+            // ✅ นับป้าย
+            GameManager.Instance.AddStop();
         }
 
         yield return new WaitForSeconds(dwellTime);
 
         cityManager.ResumeScroll();
 
-        // รอจนป้ายเลื่อนผ่านท้ายรถไปไกลๆ ค่อยรีเซ็ตระบบ
         yield return new WaitUntil(() =>
             Mathf.Abs(transform.position.x - busStopX) > stopThreshold * 3f);
 

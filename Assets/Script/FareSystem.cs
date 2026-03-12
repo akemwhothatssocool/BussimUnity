@@ -53,10 +53,16 @@ public class FareSystem : MonoBehaviour
     public Transform handPosSitL;
     public Transform handPosSitR;
 
-    [Header("เสียงเอฟเฟกต์")]
+    [Header("เสียงเอฟเฟกต์ (เงิน)")]
     public AudioSource audioSource;
     public AudioClip[] sfxCoins;
     public AudioClip[] sfxBanks;
+
+    // 🌟 1. เพิ่มช่องใส่เสียงเวลาทอนเงิน 🌟
+    [Header("เสียงสถานะการทอนเงิน")]
+    public AudioClip[] sfxSuccess;    // เสียงทอนถูกเป๊ะ
+    public AudioClip[] sfxFailUnder;  // เสียงทอนขาด (น้อยไป)
+    public AudioClip[] sfxFailOver;   // เสียงทอนเกิน
 
     [Header("คลังคำศัพท์")]
     public string[] successQuotes = new string[] { "ขอบคุณครับ", "เชิญข้างในเลยครับ" };
@@ -224,30 +230,6 @@ public class FareSystem : MonoBehaviour
             npcSpawner.SpawnMoney(npcPlannedPayment, handPos);
     }
 
-    IEnumerator StandThenPayRoutine()
-    {
-        yield return new WaitForSeconds(0.1f);
-        if (npcAnimator != null) npcAnimator.SetTrigger("trigStandGive");
-        yield return new WaitForSeconds(0.5f);
-        if (npcSpawner != null && currentPassenger != null)
-        {
-            Transform handPos = currentPassenger.GetHandPosition();
-            if (handPos != null) npcSpawner.SpawnMoney(currentTicket.price, handPos);
-        }
-    }
-
-    IEnumerator SitThenPayRoutine(string giveTriggerName, Transform handPosOverride)
-    {
-        yield return new WaitForSeconds(0.1f);
-        if (npcAnimator != null) npcAnimator.SetTrigger(giveTriggerName);
-        yield return new WaitForSeconds(0.5f);
-        if (npcSpawner != null && currentPassenger != null)
-        {
-            Transform handPos = handPosOverride != null ? handPosOverride : currentPassenger.GetHandPosition();
-            if (handPos != null) npcSpawner.SpawnMoney(currentTicket.price, handPos);
-        }
-    }
-
     public void ReceiveNPCMoney(int amount)
     {
         moneyReceived += amount;
@@ -313,6 +295,10 @@ public class FareSystem : MonoBehaviour
         }
         else if (diff == 0)
         {
+            // ✅ ทอนเป๊ะ ความนิยมบวก 2%
+            if (GameManager.Instance != null) GameManager.Instance.AdjustPopularity(2f);
+
+            PlayStatusSound(sfxSuccess); // 🌟 เล่นเสียงทอนถูก 🌟
             textStatus.text = successQuotes[Random.Range(0, successQuotes.Length)];
             textStatus.color = Color.green;
             yield return new WaitForSeconds(2.0f);
@@ -320,6 +306,10 @@ public class FareSystem : MonoBehaviour
         }
         else if (diff < 0)
         {
+            // ❌ ทอนขาด โกงผู้โดยสาร โดนด่า ความนิยมตกหนักลบ 10%
+            if (GameManager.Instance != null) GameManager.Instance.AdjustPopularity(-10f);
+
+            PlayStatusSound(sfxFailUnder); // 🌟 เล่นเสียงทอนขาด (น้อยไป) 🌟
             textStatus.text = failUnderQuotes[Random.Range(0, failUnderQuotes.Length)] + "\n(ขาด " + Mathf.Abs(diff) + ")";
             textStatus.color = Color.red;
             yield return new WaitForSeconds(2.0f);
@@ -328,6 +318,10 @@ public class FareSystem : MonoBehaviour
         }
         else
         {
+            // 🌟 ทอนเกิน ผู้โดยสารยิ้มหวาน ความนิยมบวก 5% (แต่เราขาดทุนเงินนะ!)
+            if (GameManager.Instance != null) GameManager.Instance.AdjustPopularity(5f);
+
+            PlayStatusSound(sfxFailOver); // 🌟 เล่นเสียงทอนเกิน 🌟
             textStatus.text = failOverQuotes[Random.Range(0, failOverQuotes.Length)] + "\n(เกิน " + diff + ")";
             textStatus.color = Color.yellow;
             yield return new WaitForSeconds(3.0f);
@@ -339,10 +333,11 @@ public class FareSystem : MonoBehaviour
     {
         ResetTextDisplay();
 
-        // ✅ คำนวณกำไร: รับมา - ทอนออกไป แล้วเพิ่มเข้ากระเป๋าผู้เล่น
         int profit = moneyReceived - currentChange;
         if (PlayerWallet.Instance != null)
             PlayerWallet.Instance.AddMoney(profit);
+
+        if (GameManager.Instance != null) GameManager.Instance.AddDailyIncome(profit);
 
         moneyReceived = 0;
         currentChange = 0;
@@ -397,6 +392,10 @@ public class FareSystem : MonoBehaviour
     void PlayMoneySound(int amount)
     {
         if (audioSource == null) return;
+
+        // ✅ สำคัญ: ต้องรีเซ็ต Pitch กลับมาใกล้ๆ 1 เพื่อให้เสียงเหรียญ/แบงก์ ใสปิ๊งตามปกติ
+        audioSource.pitch = Random.Range(0.95f, 1.05f);
+
         if (amount <= 10)
         {
             if (sfxCoins != null && sfxCoins.Length > 0)
@@ -407,5 +406,17 @@ public class FareSystem : MonoBehaviour
             if (sfxBanks != null && sfxBanks.Length > 0)
                 audioSource.PlayOneShot(sfxBanks[Random.Range(0, sfxBanks.Length)]);
         }
+    }
+
+    // 🌟 2. ฟังก์ชันเสริมสำหรับเล่นเสียงสถานะ (พากย์เสียง) 🌟
+    void PlayStatusSound(AudioClip[] clips)
+    {
+        if (audioSource == null || clips == null || clips.Length == 0) return;
+
+        // ✅ จุดสูตรโกง: กด Pitch ลงมาที่ 0.7 - 0.85 เพื่อบีบเสียงผู้หญิงให้ทุ้มใหญ่เป็นเสียงผู้ชาย/ลุง!
+        // (ถ้ายังใหญ่ไม่พอ ลองแก้เป็น 0.6 ดูครับ)
+        audioSource.pitch = Random.Range(0.8f, 0.85f);
+
+        audioSource.PlayOneShot(clips[Random.Range(0, clips.Length)]);
     }
 }

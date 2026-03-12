@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 
 public class BusStopManager : MonoBehaviour
@@ -15,22 +16,70 @@ public class BusStopManager : MonoBehaviour
     public Transform[] seatPoints;
     public Transform[] standPoints;
 
+    [Header("Popularity Spawn Settings")]
+    public int maxPeoplePerStop = 5;
+
+    [Header("Spawn Delay")]
+    public float spawnDelay = 2f;
+
+    [Header("Queue Delay")]
+    public float boardDelay = 1.5f;
+
+    [Header("Spawn Spread")]
+    public float spawnRadius = 1.2f;
+
     private HashSet<Transform> occupiedSeats = new HashSet<Transform>();
     private HashSet<Transform> occupiedStandPoints = new HashSet<Transform>();
 
+    private Queue<PassengerAI> passengerQueue = new Queue<PassengerAI>();
+
+    bool isBoarding = false;
+
     void Update()
     {
+        // debug
         if (Input.GetKeyDown(KeyCode.K))
         {
-            PassengerAI newPassenger = SpawnPassenger();
-            if (newPassenger != null) newPassenger.BoardBus(); // ถ้ากด K ให้เดินขึ้นรถเลย
+            StartCoroutine(SpawnPassengersRoutine());
         }
     }
 
-    // ✅ แก้ไข: เปลี่ยนจาก void เป็น PassengerAI เพื่อส่งตัวละครออกไปให้ป้ายสั่งงาน
+    // ==========================
+    // Spawn ตาม Popularity + Delay
+    // ==========================
+    IEnumerator SpawnPassengersRoutine()
+    {
+        if (GameManager.Instance == null)
+        {
+            Debug.LogError("GameManager ไม่เจอ!");
+            yield break;
+        }
+
+        float popRate = GameManager.Instance.popularity / 100f;
+
+        int peopleToSpawn = Mathf.RoundToInt(maxPeoplePerStop * popRate);
+        peopleToSpawn = Mathf.Max(1, peopleToSpawn);
+
+        for (int i = 0; i < peopleToSpawn; i++)
+        {
+            PassengerAI ai = SpawnPassenger();
+
+            if (ai != null)
+            {
+                passengerQueue.Enqueue(ai);
+            }
+
+            yield return new WaitForSeconds(spawnDelay);
+        }
+    }
+
+    // ==========================
+    // Spawn NPC
+    // ==========================
     public PassengerAI SpawnPassenger()
     {
-        if (passengerPrefab == null || spawnPoint == null) return null;
+        if (passengerPrefab == null || spawnPoint == null)
+            return null;
 
         Transform targetPoint = GetAvailableSeat();
         bool isSitting = true;
@@ -41,9 +90,24 @@ public class BusStopManager : MonoBehaviour
             isSitting = false;
         }
 
-        if (targetPoint == null) return null;
+        if (targetPoint == null)
+            return null;
 
-        GameObject p = Instantiate(passengerPrefab, spawnPoint.position, spawnPoint.rotation);
+        // ⭐ สุ่มตำแหน่งรอบ spawnPoint
+        Vector2 randomCircle = Random.insideUnitCircle * spawnRadius;
+
+        Vector3 spawnPos = spawnPoint.position + new Vector3(
+            randomCircle.x,
+            0,
+            randomCircle.y
+        );
+
+        GameObject p = Instantiate(
+            passengerPrefab,
+            spawnPos,
+            spawnPoint.rotation
+        );
+
         PassengerAI ai = p.GetComponent<PassengerAI>();
 
         if (ai != null)
@@ -64,42 +128,90 @@ public class BusStopManager : MonoBehaviour
                 ai.onExitBus += () => FreeStandPoint(targetPoint);
             }
 
-            // ✅ สั่งให้ยืนรอที่ป้ายทันทีที่เกิด
             ai.WaitAtStop(spawnPoint);
         }
 
-        return ai; // ส่งตัว AI กลับไป
+        return ai;
     }
 
+    // ==========================
+    // เรียกตอนรถจอด
+    // ==========================
+    public void StartBoarding()
+    {
+        if (!isBoarding)
+            StartCoroutine(BoardPassengersRoutine());
+    }
+
+    IEnumerator BoardPassengersRoutine()
+    {
+        isBoarding = true;
+
+        while (passengerQueue.Count > 0)
+        {
+            PassengerAI nextPassenger = passengerQueue.Dequeue();
+
+            if (nextPassenger != null)
+            {
+                nextPassenger.BoardBus();
+            }
+
+            yield return new WaitForSeconds(boardDelay);
+        }
+
+        isBoarding = false;
+    }
+
+    // ==========================
+    // Seats
+    // ==========================
     Transform GetAvailableSeat()
     {
-        if (seatPoints == null || seatPoints.Length == 0) return null;
+        if (seatPoints == null || seatPoints.Length == 0)
+            return null;
+
         List<Transform> available = new List<Transform>();
+
         foreach (Transform t in seatPoints)
+        {
             if (t != null && !occupiedSeats.Contains(t))
                 available.Add(t);
-        if (available.Count == 0) return null;
+        }
+
+        if (available.Count == 0)
+            return null;
+
         return available[Random.Range(0, available.Count)];
     }
 
     Transform GetAvailableStandPoint()
     {
-        if (standPoints == null || standPoints.Length == 0) return null;
+        if (standPoints == null || standPoints.Length == 0)
+            return null;
+
         List<Transform> available = new List<Transform>();
+
         foreach (Transform t in standPoints)
+        {
             if (t != null && !occupiedStandPoints.Contains(t))
                 available.Add(t);
-        if (available.Count == 0) return null;
+        }
+
+        if (available.Count == 0)
+            return null;
+
         return available[Random.Range(0, available.Count)];
     }
 
     public void FreeSeat(Transform seat)
     {
-        if (seat != null && occupiedSeats.Contains(seat)) occupiedSeats.Remove(seat);
+        if (seat != null && occupiedSeats.Contains(seat))
+            occupiedSeats.Remove(seat);
     }
 
     public void FreeStandPoint(Transform spot)
     {
-        if (spot != null && occupiedStandPoints.Contains(spot)) occupiedStandPoints.Remove(spot);
+        if (spot != null && occupiedStandPoints.Contains(spot))
+            occupiedStandPoints.Remove(spot);
     }
 }
