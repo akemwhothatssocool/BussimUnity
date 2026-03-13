@@ -12,21 +12,27 @@ public class BusStopManager : MonoBehaviour
     [Header("ระบบรถ")]
     public CityManager cityManager;
 
-    [Header("Points")]
+    [Header("Seat Points")]
     public Transform[] seatPoints;
+
+    [Header("Stand Points")]
     public Transform[] standPoints;
 
     [Header("Popularity Spawn Settings")]
     public int maxPeoplePerStop = 5;
 
     [Header("Spawn Delay")]
-    public float spawnDelay = 2f;
+    public float spawnDelay = 1.2f;
 
-    [Header("Queue Delay")]
-    public float boardDelay = 1.5f;
+    [Header("Board Delay")]
+    public float boardDelay = 1.2f;
 
     [Header("Spawn Spread")]
-    public float spawnRadius = 1.2f;
+    public float spawnRadius = 1.5f;
+
+    // ==========================
+    // Internal Systems
+    // ==========================
 
     private HashSet<Transform> occupiedSeats = new HashSet<Transform>();
     private HashSet<Transform> occupiedStandPoints = new HashSet<Transform>();
@@ -35,29 +41,22 @@ public class BusStopManager : MonoBehaviour
 
     bool isBoarding = false;
 
-    void Update()
+    // ==========================
+    // 🚏 เรียกเมื่อรถจอดป้าย
+    // ==========================
+    public void TriggerSpawn()
     {
-        // debug
-        if (Input.GetKeyDown(KeyCode.K))
-        {
-            StartCoroutine(SpawnPassengersRoutine());
-        }
+        StartCoroutine(SpawnPassengersRoutine());
     }
 
-    // ==========================
-    // Spawn ตาม Popularity + Delay
-    // ==========================
     IEnumerator SpawnPassengersRoutine()
     {
-        if (GameManager.Instance == null)
-        {
-            Debug.LogError("GameManager ไม่เจอ!");
-            yield break;
-        }
+        if (GameManager.Instance == null) yield break;
 
         float popRate = GameManager.Instance.popularity / 100f;
 
         int peopleToSpawn = Mathf.RoundToInt(maxPeoplePerStop * popRate);
+
         peopleToSpawn = Mathf.Max(1, peopleToSpawn);
 
         for (int i = 0; i < peopleToSpawn; i++)
@@ -74,7 +73,7 @@ public class BusStopManager : MonoBehaviour
     }
 
     // ==========================
-    // Spawn NPC
+    // Spawn Passenger
     // ==========================
     public PassengerAI SpawnPassenger()
     {
@@ -91,9 +90,12 @@ public class BusStopManager : MonoBehaviour
         }
 
         if (targetPoint == null)
+        {
+            // รถเต็ม
             return null;
+        }
 
-        // ⭐ สุ่มตำแหน่งรอบ spawnPoint
+        // ⭐ spawn กระจายตำแหน่ง
         Vector2 randomCircle = Random.insideUnitCircle * spawnRadius;
 
         Vector3 spawnPos = spawnPoint.position + new Vector3(
@@ -120,12 +122,20 @@ public class BusStopManager : MonoBehaviour
             if (isSitting)
             {
                 occupiedSeats.Add(targetPoint);
-                ai.onExitBus += () => FreeSeat(targetPoint);
+
+                ai.onExitBus += () =>
+                {
+                    FreeSeat(targetPoint);
+                };
             }
             else
             {
                 occupiedStandPoints.Add(targetPoint);
-                ai.onExitBus += () => FreeStandPoint(targetPoint);
+
+                ai.onExitBus += () =>
+                {
+                    FreeStandPoint(targetPoint);
+                };
             }
 
             ai.WaitAtStop(spawnPoint);
@@ -135,12 +145,14 @@ public class BusStopManager : MonoBehaviour
     }
 
     // ==========================
-    // เรียกตอนรถจอด
+    // 🚶 ให้ขึ้นรถทีละคน
     // ==========================
     public void StartBoarding()
     {
         if (!isBoarding)
+        {
             StartCoroutine(BoardPassengersRoutine());
+        }
     }
 
     IEnumerator BoardPassengersRoutine()
@@ -163,19 +175,26 @@ public class BusStopManager : MonoBehaviour
     }
 
     // ==========================
-    // Seats
+    // 🌟 เช็คว่าขึ้นรถหมดหรือยัง
+    // ==========================
+    public bool IsBoardingFinished()
+    {
+        return passengerQueue.Count == 0 && !isBoarding;
+    }
+
+    // ==========================
+    // Seat System
     // ==========================
     Transform GetAvailableSeat()
     {
-        if (seatPoints == null || seatPoints.Length == 0)
-            return null;
-
         List<Transform> available = new List<Transform>();
 
         foreach (Transform t in seatPoints)
         {
             if (t != null && !occupiedSeats.Contains(t))
+            {
                 available.Add(t);
+            }
         }
 
         if (available.Count == 0)
@@ -184,17 +203,19 @@ public class BusStopManager : MonoBehaviour
         return available[Random.Range(0, available.Count)];
     }
 
+    // ==========================
+    // Stand System
+    // ==========================
     Transform GetAvailableStandPoint()
     {
-        if (standPoints == null || standPoints.Length == 0)
-            return null;
-
         List<Transform> available = new List<Transform>();
 
         foreach (Transform t in standPoints)
         {
             if (t != null && !occupiedStandPoints.Contains(t))
+            {
                 available.Add(t);
+            }
         }
 
         if (available.Count == 0)
@@ -203,15 +224,25 @@ public class BusStopManager : MonoBehaviour
         return available[Random.Range(0, available.Count)];
     }
 
+    // ==========================
+    // Free Seat
+    // ==========================
     public void FreeSeat(Transform seat)
     {
         if (seat != null && occupiedSeats.Contains(seat))
+        {
             occupiedSeats.Remove(seat);
+        }
     }
 
+    // ==========================
+    // Free Stand Point
+    // ==========================
     public void FreeStandPoint(Transform spot)
     {
         if (spot != null && occupiedStandPoints.Contains(spot))
+        {
             occupiedStandPoints.Remove(spot);
+        }
     }
 }

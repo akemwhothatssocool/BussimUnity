@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using System.Collections; // 🌟 สำคัญ! ต้องมีตัวนี้ถึงจะใช้ระบบหน่วงเวลา (IEnumerator) ได้
+using System.Collections;
 
 public class TicketCylinder : MonoBehaviour
 {
@@ -8,25 +8,30 @@ public class TicketCylinder : MonoBehaviour
     public AudioSource cylinderAudioSource;
 
     [Header("=== ส่วนที่ 1.5: ไฟล์เสียง (Audio Clip) ===")]
-    public AudioClip clickClip; // ⚠️ เอาไฟล์เสียงแก๊ก (.wav/.mp3) มาใส่ช่องนี้
-    public AudioClip coinClip;  // ⚠️ เอาไฟล์เสียงเหรียญกริ๊ง (.wav/.mp3) มาใส่ช่องนี้
+    public AudioClip clickClip;
+    public AudioClip coinClip;
 
-    [Header("=== ส่วนที่ 2: สายตา ===")]
+    [Header("=== ส่วนที่ 2: สายตา (Interaction) ===")]
     public float rayDistance = 2f;
     public GameObject interactUI;
     public Transform playerCamera;
     public LayerMask npcLayer;
 
-    [Header("=== ส่วนที่ 3: ตั้งค่าเสียง ===")]
-    [Tooltip("เวลาหน่วงก่อนเสียงเหรียญจะดัง (วินาที) ให้แก๊กนำไปก่อน")]
+    [Header("=== ส่วนที่ 3: ตั้งค่าเสียง (Audio Settings) ===")]
+    [Tooltip("เวลาหน่วงก่อนเสียงเหรียญจะดัง (วินาที)")]
     public float coinDelay = 0.15f;
+
+    [Range(0f, 1f)] public float clickVolume = 0.8f; // 🌟 ปรับความดังเสียงแก๊ก
+    [Range(0f, 1f)] public float coinVolume = 0.3f;  // 🌟 ปรับความดังเสียงเหรียญ (แนะนำให้เบากว่าแก๊ก)
 
     void Update()
     {
+        // ถ้าเมาส์โผล่ (หน้าจอ UI เปิดอยู่) จะกดคลิกเขย่ากระบอกไม่ได้
         if (Cursor.visible) return;
 
         CheckLookingAtNPC();
 
+        // คลิกซ้ายเพื่อ "เขย่ากระบอกตั๋ว"
         if (Input.GetButtonDown("Fire1"))
         {
             PlayClickAction();
@@ -40,6 +45,7 @@ public class TicketCylinder : MonoBehaviour
 
         if (Physics.Raycast(ray, out hit, rayDistance, npcLayer))
         {
+            // ถ้าส่องไปเจอ NPC ให้ขึ้น UI บอกว่ากด E หรือคลิกได้
             if (hit.collider.CompareTag("NPC"))
             {
                 if (interactUI != null) interactUI.SetActive(true);
@@ -57,16 +63,18 @@ public class TicketCylinder : MonoBehaviour
 
     void PlayClickAction()
     {
-        if (cylinderAnimator != null) cylinderAnimator.Play("TicketClick", -1, 0f);
+        // เล่น Animation เขย่ากระบอก
+        if (cylinderAnimator != null)
+            cylinderAnimator.Play("TicketClick", -1, 0f);
 
-        // 1. เล่นเสียง "แก๊ก" ทันทีที่กดคลิก
+        // 1. เล่นเสียง "แก๊ก" ทันที
         if (cylinderAudioSource != null && clickClip != null)
         {
             cylinderAudioSource.pitch = Random.Range(0.9f, 1.1f);
-            cylinderAudioSource.PlayOneShot(clickClip, 1.0f); // ดัง 100%
+            cylinderAudioSource.PlayOneShot(clickClip, clickVolume);
         }
 
-        // 2. เรียกตัวหน่วงเวลาให้เล่นเสียง "เหรียญ" ตามมาติดๆ
+        // 2. เรียกตัวหน่วงเวลาให้เล่นเสียง "เหรียญ" ตามมา
         if (cylinderAudioSource != null && coinClip != null)
         {
             StartCoroutine(PlayCoinDelayed());
@@ -75,11 +83,14 @@ public class TicketCylinder : MonoBehaviour
 
     IEnumerator PlayCoinDelayed()
     {
-        // หน่วงเวลาเสี้ยววินาที (0.15 วิ) ให้เสียงแก๊กจบ/นำไปก่อน
+        // รอเสี้ยววินาทีเพื่อให้เสียงแก๊กนำไปก่อน
         yield return new WaitForSeconds(coinDelay);
 
-        // เล่นเสียง "เหรียญกริ๊ง"
-        cylinderAudioSource.pitch = Random.Range(0.85f, 1.15f);
-        cylinderAudioSource.PlayOneShot(coinClip, 0.6f); // ดรอปเสียงเหรียญลงมาเหลือ 60% จะได้ไม่กลบเสียงแก๊ก
+        // เล่นเสียง "เหรียญกริ๊ง" ในกระบอก
+        if (cylinderAudioSource != null && coinClip != null)
+        {
+            cylinderAudioSource.pitch = Random.Range(0.85f, 1.15f);
+            cylinderAudioSource.PlayOneShot(coinClip, coinVolume);
+        }
     }
 }

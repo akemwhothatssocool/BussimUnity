@@ -1,4 +1,6 @@
 ﻿using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 
 public class GameManager : MonoBehaviour
@@ -12,8 +14,8 @@ public class GameManager : MonoBehaviour
 
     [Header("=== ระบบการเงินรายวัน ===")]
     public int dailyIncome = 0;
-    public int dailyGasCost = 150; // สมมติค่าน้ำมันวันละ 150 บาท
-    public int totalMoney = 0;
+    public int dailyGasCost = 150;
+    public int totalMoney = 100; // 🌟 เริ่มต้นด้วยทุนมรดก 100 บาท
 
     [Header("=== ระบบความนิยม ===")]
     [Tooltip("ความนิยม 0-100% มีผลกับจำนวนคนขึ้นรถ")]
@@ -29,22 +31,22 @@ public class GameManager : MonoBehaviour
 
     void Awake()
     {
-        // ทำให้เรียกใช้ GameManager.Instance ได้จากทุกที่
         if (Instance == null) Instance = this;
     }
 
     void Start()
     {
         if (summaryPanel != null) summaryPanel.SetActive(false);
+
+        // ถ้าอยากให้เงินบันทึกข้ามการปิดเกม ให้ใช้ PlayerPrefs (ทางเลือก)
+        // totalMoney = PlayerPrefs.GetInt("TotalMoney", 100);
     }
 
-    // ฟังก์ชันนี้นับป้าย จะถูกเรียกตอนรถเมล์เข้าจอด
     public void AddStop()
     {
         if (stopsReached >= stopsPerDay) return;
 
         stopsReached++;
-
         Debug.Log($"ป้ายที่ {stopsReached} / {stopsPerDay}");
 
         if (stopsReached >= stopsPerDay)
@@ -53,58 +55,74 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // เก็บรายรับรายวัน
     public void AddDailyIncome(int amount)
     {
         dailyIncome += amount;
     }
 
-    // ปรับความนิยม (พวกลบ/บวก ตอนทอนเงิน)
     public void AdjustPopularity(float amount)
     {
         popularity = Mathf.Clamp(popularity + amount, 0f, 100f);
     }
 
-    // จบวัน: สรุปยอด
+    // ==========================================
+    // 🌟 จบวัน: สรุปยอด และ ล้างระบบบั๊ก
+    // ==========================================
     public void EndDay()
     {
-        Time.timeScale = 0f; // หยุดเวลาในเกมชั่วคราว
+        // 1. แก้บั๊ก State ค้าง: สั่ง Hard Reset ระบบทอนเงินทันที
+        FareSystem fare = Object.FindFirstObjectByType<FareSystem>();
+        if (fare != null)
+        {
+            fare.ForceResetSystem();
+        }
+
+        // 2. หยุดเวลาและจัดการ Cursor
+        Time.timeScale = 0f;
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
 
+        // 3. คำนวณเงิน
         int netProfit = dailyIncome - dailyGasCost;
-        totalMoney += netProfit; // เอาเข้ากระเป๋าจริง
+        totalMoney += netProfit;
 
-        // อัปเดตข้อความ UI
+        // 4. อัปเดตข้อความ UI
         if (txtDay) txtDay.text = $"สรุปผลวันที่ {currentDay}";
         if (txtIncome) txtIncome.text = $"+ {dailyIncome} ฿";
         if (txtExpense) txtExpense.text = $"- {dailyGasCost} ฿ (ค่าน้ำมัน)";
-        if (txtProfit) txtProfit.text = $"กำไรสุทธิ: {netProfit} ฿";
+        if (txtProfit) txtProfit.text = $"กำไรสุทธิ: {netProfit} ฿\nเงินรวมทั้งหมด: {totalMoney} ฿";
         if (txtPopularity) txtPopularity.text = $"ความนิยม: {popularity:F0} %";
 
         if (summaryPanel != null) summaryPanel.SetActive(true);
     }
 
-    // กดปุ่มเพื่อเริ่มวันใหม่
+    // ==========================================
+    // เริ่มวันใหม่: ล้างคนเก่า ล้างบั๊ก
+    // ==========================================
     public void StartNextDay()
     {
         currentDay++;
         stopsReached = 0;
         dailyIncome = 0;
 
-        // ✅ เคลียร์ NPC ที่ยังนั่งอยู่บนรถออกให้หมดเพื่อเริ่มกะใหม่
-        PassengerAI[] remainingPassengers = FindObjectsOfType<PassengerAI>();
+        // 1. สั่งล้างระบบทอนเงินอีกรอบเพื่อความชัวร์ (Double Check)
+        FareSystem fare = Object.FindFirstObjectByType<FareSystem>();
+        if (fare != null) fare.ForceResetSystem();
+
+        // 2. ลบ NPC ที่ค้างอยู่ในรถให้หมด
+        PassengerAI[] remainingPassengers = Object.FindObjectsByType<PassengerAI>(FindObjectsSortMode.None);
         foreach (PassengerAI p in remainingPassengers)
         {
             Destroy(p.gameObject);
         }
 
+        // 3. ปิดหน้าจอสรุปผลและรันเกมต่อ
         if (summaryPanel != null) summaryPanel.SetActive(false);
 
-        Time.timeScale = 1f; // เดินเวลาต่อ
+        Time.timeScale = 1f;
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
 
-        Debug.Log("เริ่มวันใหม่! ลุย!");
+        Debug.Log("เริ่มวันใหม่! ลุยเก็บเงินสร้างตัว!");
     }
 }

@@ -6,7 +6,7 @@ public class PlayerWallet : MonoBehaviour
     public static PlayerWallet Instance; // ✅ Singleton เรียกได้จากทุกที่
 
     [Header("ตั้งค่าเงินเริ่มต้น")]
-    public int startingMoney = 150;
+    public int startingMoney = 100;
 
     [Header("UI แสดงเงินตอนเดินปกติ")]
     public TextMeshProUGUI textWalletHUD; // ✅ ลาก Text ใน HUD มาใส่

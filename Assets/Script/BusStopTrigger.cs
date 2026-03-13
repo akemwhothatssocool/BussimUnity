@@ -11,28 +11,27 @@ public class BusStopTrigger : MonoBehaviour
     public float busStopX = 0f;
     public float stopThreshold = 2f;
     public float dwellTime = 5f;
-
-    [Header("ระยะเวลาการเสก")]
-    [Tooltip("ระยะห่างที่ไกลพอจะเริ่มเสกคน (แปลว่าเพิ่งวาร์ปมาใหม่ เช่น 50)")]
     public float spawnDistance = 50f;
 
-    private bool _hasTriggered = false;
-    private PassengerAI _waitingPassenger;
+    private bool _hasTriggeredStop = false;
+    private bool _hasTriggeredSpawn = false; // 🌟 เพิ่มตัวแปรเช็คการเสกคน
 
     void Update()
     {
         float dist = Mathf.Abs(transform.position.x - busStopX);
 
-        // 1. ระบบเช็คจุดเกิด: ถ้าป้ายอยู่ไกลจากรถมากๆ (เกิน spawnDistance) และยังไม่มีคนมารอ ให้เสกคน!
-        if (dist >= spawnDistance && _waitingPassenger == null && !_hasTriggered)
+        // 1. ระบบเช็คจุดเกิด: เปลี่ยนมาเรียก TriggerSpawn (เสกเป็นกลุ่ม)
+        if (dist >= spawnDistance && !_hasTriggeredSpawn && !_hasTriggeredStop)
         {
-            _waitingPassenger = busStopManager.SpawnPassenger();
+            _hasTriggeredSpawn = true;
+            busStopManager.TriggerSpawn(); // 🌟 สั่งเสกกลุ่มตามความนิยม (1-5 คน)
+            Debug.Log("สั่งเสกกลุ่มผู้โดยสารที่ป้าย!");
         }
 
-        // 2. ระบบเช็คจุดจอด: ถ้าป้ายเลื่อนมาถึงหน้ารถ
-        if (!_hasTriggered && dist <= stopThreshold)
+        // 2. ระบบเช็คจุดจอด
+        if (!_hasTriggeredStop && dist <= stopThreshold)
         {
-            _hasTriggered = true;
+            _hasTriggeredStop = true;
             StartCoroutine(HandleBusStop());
         }
     }
@@ -40,26 +39,36 @@ public class BusStopTrigger : MonoBehaviour
     IEnumerator HandleBusStop()
     {
         cityManager.PauseScroll();
-
         yield return new WaitUntil(() => Mathf.Abs(cityManager._currentSpeed) < 0.05f);
 
-        // รถจอดสนิท สั่งให้คนขึ้นรถ
-        if (_waitingPassenger != null)
-        {
-            _waitingPassenger.BoardBus();
-            _waitingPassenger = null;
+        busStopManager.StartBoarding();
 
-            // ✅ นับป้าย
+        // 🌟 รอจนคนขึ้นหมด และเช็คว่าไม่มีใครกำลังเดินลง (Exiting)
+        // (AnyPassengerExiting คือฟังก์ชันที่เราจะเพิ่มไว้ด้านล่างครับ)
+        yield return new WaitUntil(() => busStopManager.IsBoardingFinished() && !AnyPassengerExiting());
+
+        yield return new WaitForSeconds(1.0f);
+
+        // ✅ แก้จาก GameMask เป็น GameManager ครับ!
+        if (GameManager.Instance != null)
             GameManager.Instance.AddStop();
-        }
-
-        yield return new WaitForSeconds(dwellTime);
 
         cityManager.ResumeScroll();
 
-        yield return new WaitUntil(() =>
-            Mathf.Abs(transform.position.x - busStopX) > stopThreshold * 3f);
+        yield return new WaitUntil(() => Mathf.Abs(transform.position.x - busStopX) > stopThreshold * 5f);
+        _hasTriggeredStop = false;
+        _hasTriggeredSpawn = false;
+    }
 
-        _hasTriggered = false;
+    // 🌟 เพิ่มฟังก์ชันนี้ไว้ใน BusStopTrigger.cs ด้วยนะครับ (วางไว้นอก IEnumerator)
+    bool AnyPassengerExiting()
+    {
+        // หา NPC ทั้งหมดในฉากมาเช็คสถานะ
+        PassengerAI[] passengers = Object.FindObjectsByType<PassengerAI>(FindObjectsSortMode.None);
+        foreach (var p in passengers)
+        {
+            if (p.currentState == PassengerAI.State.Exiting) return true;
+        }
+        return false;
     }
 }
