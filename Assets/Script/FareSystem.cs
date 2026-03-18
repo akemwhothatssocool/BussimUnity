@@ -4,6 +4,7 @@ using TMPro;
 
 public class FareSystem : MonoBehaviour
 {
+    // ... (ส่วนประกาศตัวแปร Header 1 ถึง 8 ปล่อยไว้เหมือนเดิม ไม่ต้องแก้ครับ) ...
     [Header("=== 1. ระบบโมเดลและแอนิเมชัน ===")]
     public GameObject rightHandMoneyModel;
     public float handAnimDuration = 0.3f;
@@ -24,7 +25,8 @@ public class FareSystem : MonoBehaviour
     public TextMeshProUGUI textStatus;
 
     [Header("=== 4. ตั้งค่าระบบคิดเงิน ===")]
-    public int[] possiblePrices = { 8, 10, 12, 15, 20 };
+    public int baseFare = 10;
+    public int farePerStop = 5;
     public TicketData currentTicket;
     public int moneyReceived;
     public int currentChange;
@@ -50,8 +52,8 @@ public class FareSystem : MonoBehaviour
     public AudioClip[] sfxFailOver;
 
     [Header("=== 7. ระดับเสียง (Volume Settings) ===")]
-    [Range(0f, 1f)] public float moneyVolume = 0.3f;   // เสียงเหรียญ/แบงก์
-    [Range(0f, 1f)] public float statusVolume = 1.0f;  // เสียงลุง/NPC
+    [Range(0f, 1f)] public float moneyVolume = 0.3f;
+    [Range(0f, 1f)] public float statusVolume = 1.0f;
 
     [Header("=== 8. คลังคำพูด NPC ===")]
     public string[] successQuotes = { "ขอบคุณครับ", "เชิญข้างในเลยครับ" };
@@ -103,7 +105,7 @@ public class FareSystem : MonoBehaviour
     // ==========================================
     public void ForceResetSystem()
     {
-        StopAllCoroutines(); // หยุดการทำงานค้างทั้งหมด
+        StopAllCoroutines();
 
         isTransactionActive = false;
         waitingForCollection = false;
@@ -134,7 +136,34 @@ public class FareSystem : MonoBehaviour
         npcAnimator = passenger.animator;
 
         if (currentTicket == null) currentTicket = ScriptableObject.CreateInstance<TicketData>();
-        currentTicket.price = possiblePrices[Random.Range(0, possiblePrices.Length)];
+
+        // ==================================================
+        // 🌟 ระบบคำนวณราคาแบบใหม่ (อิงจากระยะทางป้าย)
+        // ==================================================
+        int currentStop = 0;
+        int maxStops = 6;
+        if (GameManager.Instance != null)
+        {
+            currentStop = GameManager.Instance.stopsReached;
+            maxStops = GameManager.Instance.stopsPerDay;
+        }
+
+        // 1. เช็กว่าเหลืออีกกี่ป้ายถึงจะสุดสาย
+        int remainingStops = maxStops - currentStop;
+        if (remainingStops < 1) remainingStops = 1; // กันบั๊กคนขึ้นป้ายสุดท้าย
+
+        // 2. สุ่มว่าคนนี้จะนั่งกี่ป้าย (1 ป้าย ไปจนถึงสุดสาย)
+        int travelStops = Random.Range(1, remainingStops + 1);
+
+        // 3. คำนวณราคา: ค่าโดยสารเริ่มต้น + (จำนวนป้าย * 5 บาท)
+        // เช่น นั่ง 2 ป้าย = 10 + (2 * 5) = 20 บาท
+        currentTicket.price = baseFare + (travelStops * farePerStop);
+
+        // 4. ส่งข้อมูลเป้าหมายไปเก็บไว้ที่ตัวผู้โดยสาร (เผื่อเอาไปใช้สั่งให้ลงรถ)
+        passenger.targetStop = currentStop + travelStops;
+        // ==================================================
+
+        // สุ่มแบงก์/เหรียญที่ NPC จะจ่าย ตามราคาใหม่ที่คำนวณได้
         npcPlannedPayment = GenerateRealisticPayment(currentTicket.price);
 
         moneyReceived = 0;
@@ -143,7 +172,6 @@ public class FareSystem : MonoBehaviour
 
         if (cylinderAnimator != null) cylinderAnimator.SetBool(lidBoolName, true);
 
-        // เช็คตำแหน่งมือตามท่าทาง
         if (!passenger.isSittingSeat) { currentPoseState = 0; StartCoroutine(SpawnOnlyRoutine(passenger.GetHandPosition())); }
         else if (!passenger.isRightSide) { currentPoseState = 1; StartCoroutine(SpawnOnlyRoutine(handPosSitL != null ? handPosSitL : passenger.GetHandPosition())); }
         else { currentPoseState = 2; StartCoroutine(SpawnOnlyRoutine(handPosSitR != null ? handPosSitR : passenger.GetHandPosition())); }
@@ -188,7 +216,6 @@ public class FareSystem : MonoBehaviour
         int correctChange = moneyReceived - currentTicket.price;
         int diff = currentChange - correctChange;
 
-        // ถ้าจ่ายเงินครบและไม่ทอนขาด ให้จบ Transaction
         if (moneyReceived >= currentTicket.price && diff >= 0) isTransactionActive = false;
         StartCoroutine(ShowResultAndClose(diff));
     }
@@ -242,23 +269,23 @@ public class FareSystem : MonoBehaviour
         if (PlayerWallet.Instance != null) PlayerWallet.Instance.AddMoney(profit);
         if (GameManager.Instance != null) GameManager.Instance.AddDailyIncome(profit);
 
-        ForceResetSystem(); // ใช้ Hard Reset เพื่อปิดทุกอย่างให้ชัวร์
+        // 🌟 1. สั่งให้ NPC รู้ว่าจ่ายเงินเสร็จแล้ว (ปิดไอคอน/เดินเข้าที่) ต้องทำก่อนโดน Reset!
+        if (currentPassenger != null)
+        {
+            currentPassenger.PaymentCompleted();
+        }
 
+        // 🌟 2. สั่งเล่นแอนิเมชันเก็บมือ
         if (npcAnimator != null)
         {
             string trig = (currentPoseState == 0) ? "trigStandDone" : (currentPoseState == 1 ? "trigSitDoneL" : "trigSitDoneR");
             npcAnimator.SetTrigger(trig);
         }
 
-        if (currentPassenger != null)
-        {
-            currentPassenger.PaymentCompleted();
-        }
+        // 🌟 3. ล้างความจำและเคลียร์ระบบทั้งหมด (เอาไว้ล่างสุด)
+        ForceResetSystem();
     }
 
-    // ==========================================
-    // Helpers & Audio
-    // ==========================================
     void PlayMoneySound(int amount)
     {
         if (audioSource == null) return;
@@ -270,7 +297,7 @@ public class FareSystem : MonoBehaviour
     void PlayStatusSound(AudioClip[] clips)
     {
         if (audioSource == null || clips == null || clips.Length == 0) return;
-        audioSource.pitch = Random.Range(0.8f, 0.85f); // เสียงลุงทุ้มๆ
+        audioSource.pitch = Random.Range(0.8f, 0.85f);
         audioSource.PlayOneShot(clips[Random.Range(0, clips.Length)], statusVolume);
     }
 
@@ -318,10 +345,41 @@ public class FareSystem : MonoBehaviour
         if (npcSpawner != null && h != null) npcSpawner.SpawnMoney(npcPlannedPayment, h);
     }
 
+    // 🌟 ฟังก์ชันใหม่: สุ่มเงินจ่ายแบบอิงความน่าจะเป็น (Weighted Random)
     int GenerateRealisticPayment(int price)
     {
-        int[] bills = { 1000, 500, 100, 50, 20 };
-        foreach (int bill in bills) if (bill >= price) return bill;
-        return price;
+        // สุ่มตัวเลข 1-100 เพื่อเช็กดวงของผู้โดยสารคนนี้
+        int chance = Random.Range(1, 101);
+
+        // โอกาส 40% จ่ายพอดีเป๊ะ (หรือเศษเหรียญใกล้เคียง)
+        if (chance <= 40)
+        {
+            return price;
+        }
+        // โอกาส 35% จ่ายแบงก์ 20 (ถ้าค่าตั๋วไม่เกิน 20)
+        else if (chance <= 75 && price <= 20)
+        {
+            return 20;
+        }
+        // โอกาส 15% จ่ายแบงก์ 50 (ถ้าค่าตั๋วไม่เกิน 50)
+        else if (chance <= 90 && price <= 50)
+        {
+            return 50;
+        }
+        // โอกาส 7% จ่ายแบงก์ 100
+        else if (chance <= 97 && price <= 100)
+        {
+            return 100;
+        }
+        // โอกาส 2% จ่ายแบงก์ 500
+        else if (chance <= 99)
+        {
+            return 500;
+        }
+        // โอกาส 1% แจ็กพอต จ่ายแบงก์ 1000 (ผู้โดยสารรวยจัด)
+        else
+        {
+            return 1000;
+        }
     }
 }

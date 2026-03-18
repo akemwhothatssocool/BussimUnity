@@ -7,6 +7,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
 {
     public enum State { Boarding, FindingSeat, Seated, WaitingForFare, HandExtended, Paying, Riding, Exiting }
     public State currentState = State.Boarding;
+    public int targetStop;
 
     [Header("การตั้งค่าอารมณ์")]
     public bool hasPaid = false;
@@ -244,22 +245,18 @@ public class PassengerAI : MonoBehaviour, IInteractable
 
     IEnumerator RideAndGetOff()
     {
-        // 1. นั่งไปสักพัก (สุ่มเวลา)
-        yield return new WaitForSeconds(UnityEngine.Random.Range(10f, 20f));
-        currentState = State.Exiting;
+        // 1. นั่งรอไปเรื่อยๆ จนกว่ารถจะจอด และถูก BusStopTrigger สะกิดให้ลง
+        // (เราให้ BusStopTrigger เป็นตัวตัดสินใจเปลี่ยน currentState ให้เป็น Exiting)
+        yield return new WaitUntil(() => currentState == State.Exiting);
 
-        // 2. รอจนกว่ารถจะจอดสนิท
-        if (cityManager != null)
-            yield return new WaitUntil(() => Mathf.Abs(cityManager._currentSpeed) < 0.05f);
-
-        // 3. ถ้าลุกจากที่นั่ง ให้รอแอนิเมชันลุกแป๊บนึง
+        // 2. ถ้าลุกจากที่นั่ง ให้รอแอนิเมชันลุกแป๊บนึง
         if (isSittingSeat)
         {
             animator.SetBool("isSitting", false);
             yield return new WaitForSeconds(1.5f); // รอให้ลุกขึ้นมายืนก่อน
         }
 
-        // 4. เริ่มขั้นตอนการเดินออกจากรถ
+        // 3. เริ่มขั้นตอนการเดินออกจากรถ
         if (agent != null)
         {
             agent.enabled = true;
@@ -270,11 +267,11 @@ public class PassengerAI : MonoBehaviour, IInteractable
                 agent.isStopped = false;
                 agent.SetDestination(exitPoint.position);
 
-                // 🌟 [จุดสำคัญ] รอให้ NavMesh คำนวณเส้นทางให้เสร็จก่อน
+                // รอให้ NavMesh คำนวณเส้นทางให้เสร็จก่อน
                 yield return new WaitUntil(() => !agent.pathPending);
 
-                // 🌟 [จุดสำคัญ] รอจนกว่าน้องจะเดินไปถึงจุดทางลง (ระยะห่างน้อยกว่า 0.5 เมตร)
-                float timeout = 5f; // กันบั๊กค้าง ถ้าเดินไม่ถึงใน 5 วิ ให้หายไปเลย
+                // รอจนกว่าน้องจะเดินไปถึงจุดทางลง
+                float timeout = 5f;
                 while (agent.remainingDistance > 0.5f && timeout > 0)
                 {
                     timeout -= Time.deltaTime;
@@ -283,8 +280,8 @@ public class PassengerAI : MonoBehaviour, IInteractable
             }
         }
 
-        // 5. ลงรถเรียบร้อย ค่อยทำลาย Object
-        Debug.Log($"{gameObject.name} ลงรถเรียบร้อยแล้วจ้า");
+        // 4. ลงรถเรียบร้อย ค่อยทำลาย Object
+        Debug.Log($"{gameObject.name} ลงรถเรียบร้อยที่ป้ายตามเป้าหมายจ้า");
         onExitBus?.Invoke();
         Destroy(gameObject);
     }

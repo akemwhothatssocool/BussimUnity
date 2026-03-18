@@ -41,15 +41,37 @@ public class BusStopTrigger : MonoBehaviour
         cityManager.PauseScroll();
         yield return new WaitUntil(() => Mathf.Abs(cityManager._currentSpeed) < 0.05f);
 
+        // ==========================================
+        // 🌟 1. ระบบสั่งคนลงรถ (เพิ่มใหม่ตรงนี้!)
+        // ==========================================
+        // ต้องบวก 1 เพราะป้ายปัจจุบันยังไม่ได้รัน GameManager.AddStop() 
+        int currentStopNumber = GameManager.Instance.stopsReached + 1;
+
+        // หา NPC ทั้งหมดในฉาก
+        PassengerAI[] passengersOnBus = Object.FindObjectsByType<PassengerAI>(FindObjectsSortMode.None);
+        foreach (var p in passengersOnBus)
+        {
+            // ถ้า NPC คนนี้นั่งอยู่ (หรือจ่ายเงินเสร็จแล้ว) และป้ายปัจจุบันถึงเป้าหมายแล้ว
+            if (p.currentState == PassengerAI.State.Seated && currentStopNumber >= p.targetStop)
+            {
+                p.currentState = PassengerAI.State.Exiting; // สั่งเปลี่ยนสถานะให้เดินลงรถ!
+                Debug.Log($"ผู้โดยสารลงรถที่ป้าย {currentStopNumber}");
+
+                // 💡 หมายเหตุ: ถ้าใน PassengerAI ของคุณมีฟังก์ชันสั่งให้เดินลงโดยเฉพาะ (เช่น p.StartExiting()) 
+                // ให้เรียกฟังก์ชันนั้นตรงนี้ด้วยนะครับ
+            }
+        }
+        // ==========================================
+
+        // 2. ระบบสั่งคนขึ้นรถ (ของเดิม)
         busStopManager.StartBoarding();
 
-        // 🌟 รอจนคนขึ้นหมด และเช็คว่าไม่มีใครกำลังเดินลง (Exiting)
-        // (AnyPassengerExiting คือฟังก์ชันที่เราจะเพิ่มไว้ด้านล่างครับ)
+        // 3. รอจนกว่าทั้ง "คนขึ้น" และ "คนลง" ทำงานเสร็จหมด
         yield return new WaitUntil(() => busStopManager.IsBoardingFinished() && !AnyPassengerExiting());
 
         yield return new WaitForSeconds(1.0f);
 
-        // ✅ แก้จาก GameMask เป็น GameManager ครับ!
+        // 4. อัปเดตจำนวนป้ายในระบบ
         if (GameManager.Instance != null)
             GameManager.Instance.AddStop();
 
