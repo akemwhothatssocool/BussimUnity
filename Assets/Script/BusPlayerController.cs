@@ -30,23 +30,26 @@ public class BusPlayerController : MonoBehaviour
     public Animator npcAnimator;
 
     [Header("6. ระบบแรงเหวี่ยง (Inertia)")]
-    public CityManager cityManager;
     [Tooltip("ความแรงของการเซ (ยิ่งเยอะ ยิ่งเซแรงจนปลิว)")]
     public float inertiaMultiplier = 10f;
     [Tooltip("ความเร็วในการทรงตัวกลับมายืนตรงๆ (ยิ่งเยอะ ยิ่งหายเซไว)")]
     public float stumbleRecoverySpeed = 5f;
 
-    // 🌟 ส่วนที่เพิ่มเข้ามาใหม่: ระบบการเอียงตัว (Leaning)
     [Header("7. ระบบการเอียงตัว (Leaning)")]
     [Tooltip("ความเอียงต่อแรงผลัก (ยิ่งเยอะ ยิ่งเอียงเยอะ)")]
     public float leanSensitivity = 2f;
-    [Tooltip("องศาการเอียงสูงสุด (เข็มขัดนิรภัย: ล็อคไม่ให้เอียงจนจมพื้น)")]
+    [Tooltip("องศาการเอียงสูงสุด")]
     public float maxLeanAngle = 20f;
-    // ------------------------------------------
 
+    [Header("8. ระบบฟิสิกส์ตอนลงรถ")]
+    public CityManager cityManager; // ✅ ประกาศแค่ครั้งเดียว
+    public bool isInsideBus = true;
+    public Vector3 scrollDirection = new Vector3(-1, 0, 0);
+
+    // Private variables
+    private CharacterController controller; // ✅ ใช้ตัวเดียว ลบ cc ออก
     private float lastBusSpeed;
     private Vector3 inertiaVelocity;
-    private CharacterController controller;
     private float xRotation = 0f;
     private Vector3 velocity;
     public float currentStamina;
@@ -56,7 +59,7 @@ public class BusPlayerController : MonoBehaviour
 
     void Start()
     {
-        controller = GetComponent<CharacterController>();
+        controller = GetComponent<CharacterController>(); // ✅ ดึงครั้งเดียว
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         currentStamina = maxStamina;
@@ -72,6 +75,13 @@ public class BusPlayerController : MonoBehaviour
         HandleMouseLook();
         HandleMovement();
         HandleInteraction();
+
+        // 🌟 ถอยหลังตามฉาก ถ้าไม่ได้อยู่บนรถ!
+        if (!isInsideBus && cityManager != null)
+        {
+            Vector3 pushMovement = scrollDirection * cityManager._currentSpeed * Time.deltaTime;
+            controller.Move(pushMovement);
+        }
     }
 
     void HandleMouseLook()
@@ -100,9 +110,7 @@ public class BusPlayerController : MonoBehaviour
 
         activeMoveSpeed = Mathf.Lerp(activeMoveSpeed, targetSpeed, acceleration * Time.deltaTime);
 
-        // ==========================================
-        // 8. คำนวณแรงเฉื่อย (เซไปเซมา) แบบล็อคความเร็วไม่ให้วาร์ป!
-        // ==========================================
+        // คำนวณแรงเฉื่อย
         if (cityManager != null)
         {
             float currentBusSpeed = cityManager._currentSpeed;
@@ -110,41 +118,27 @@ public class BusPlayerController : MonoBehaviour
 
             if (Mathf.Abs(deltaSpeed) < 2f && Mathf.Abs(deltaSpeed) > 0.001f)
             {
-                // ✅ แก้ตรงนี้: เปลี่ยน Vector3.right เป็น Vector3.left 
-                // เพื่อกลับทิศทางแรงเหวี่ยง เบรก=หน้า, เร่ง=หลัง
                 inertiaVelocity += Vector3.left * (deltaSpeed * inertiaMultiplier);
             }
             lastBusSpeed = currentBusSpeed;
         }
 
-        // เข็มขัดนิรภัย: ล็อคความเร็วสูงสุดของการเซ!
         inertiaVelocity = Vector3.ClampMagnitude(inertiaVelocity, 5f);
 
-        // ==========================================
-        // 🌟 9. คำนวณการเอียงตัว (Leaning/Pitch) เพื่อความเนียนตา!
-        // ==========================================
+        // คำนวณการเอียงตัว
         if (cityManager != null)
         {
             float leanAmount = inertiaVelocity.x * leanSensitivity;
             leanAmount = Mathf.Clamp(leanAmount, -maxLeanAngle, maxLeanAngle);
 
-            // ✅ จุดที่แก้บั๊กหันหน้า: เราต้อง "ดึงองศาการหันซ้าย-ขวาเดิม (แกน Y)" มาใส่ไว้ด้วย ไม่บังคับเป็น 0 แล้ว
             float currentYRotation = transform.localEulerAngles.y;
-
-            // สร้างเป้าหมาย: เอียงแกน X ตามแรงเบรก + หันแกน Y ตามเมาส์ปกติ + แกน Z ไม่ต้องเอียง
             Quaternion targetLeanRotation = Quaternion.Euler(leanAmount, currentYRotation, 0f);
-
             transform.localRotation = Quaternion.Slerp(transform.localRotation, targetLeanRotation, 7f * Time.deltaTime);
         }
-        // ==========================================
 
-        // ค่อยๆ ลดแรงเหวี่ยงลง เหมือนคนพยายามดึงสติกลับมาทรงตัว
         inertiaVelocity = Vector3.Lerp(inertiaVelocity, Vector3.zero, stumbleRecoverySpeed * Time.deltaTime);
-        // ==========================================
 
-        // เอาแรงเดินปกติ มารวมกับ แรงเซ
         Vector3 finalMovement = (direction * activeMoveSpeed) + inertiaVelocity;
-
         controller.Move(finalMovement * Time.deltaTime);
 
         // ระบบ Stamina
@@ -178,7 +172,6 @@ public class BusPlayerController : MonoBehaviour
             if (interactable != null && interactable.CanInteract())
             {
                 foundInteractable = true;
-
                 if (interactPromptUI != null) interactPromptUI.Show(interactable.GetPromptText());
 
                 if (Input.GetKeyDown(KeyCode.E))
@@ -197,5 +190,22 @@ public class BusPlayerController : MonoBehaviour
     public void ResetInteraction()
     {
         isTransactionActive = false;
+    }
+
+    // ✅ ระบบเช็คว่าอยู่บนรถหรือเปล่า
+    void OnTriggerStay(Collider other)
+    {
+        if (other.CompareTag("BusZone"))
+        {
+            isInsideBus = true;
+        }
+    }
+
+    void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("BusZone"))
+        {
+            isInsideBus = false;
+        }
     }
 }

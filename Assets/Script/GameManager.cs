@@ -26,6 +26,7 @@ public class GameManager : MonoBehaviour
     [Tooltip("ความนิยม 0-100% (จะถูกแปลงเป็นดาว 0-5 ดวง)")]
     public float popularity = 50f;
     public float dailyPopularityGain = 12f;
+    public float permanentPopularityBonus = 0f;
 
     [Header("=== UI สรุปผลจบวัน (New UI) ===")]
     public GameObject summaryPanel;
@@ -121,9 +122,12 @@ public class GameManager : MonoBehaviour
         // 5. อัปเดตดาว
         if (busRateDisplay != null)
         {
-            float starRating = popularity / 20f;
+            // เอาความนิยมหลัก + โบนัสเบาะถาวร (และล็อกไว้ไม่ให้ทะลุ 100)
+            float finalPopularity = Mathf.Clamp(popularity + permanentPopularityBonus, 0f, 100f);
+
+            float starRating = finalPopularity / 20f;
             busRateDisplay.UpdateBusRate(starRating);
-            Debug.Log($"⭐ BusRate: {starRating} ดาว (Popularity: {popularity}%)");
+            Debug.Log($"⭐ BusRate: {starRating} ดาว (คะแนนดิบ: {popularity}% + โบนัสเบาะ: {permanentPopularityBonus}%)");
         }
 
         // เปิดหน้าจอ
@@ -162,8 +166,11 @@ public class GameManager : MonoBehaviour
 
     public void OpenUpgradeMenu()
     {
-        Debug.Log("กดปุ่ม Upgrade! -> เดี๋ยวสร้างหน้าต่างอัปเกรดมาโชว์ตรงนี้");
-        // TODO: สั่งเปิด UI หน้าอัปเกรดรถบัส
+        Debug.Log("เปิดหน้าต่าง Upgrade!");
+        if (UpgradeManager.Instance != null)
+        {
+            UpgradeManager.Instance.OpenMenu();
+        }
     }
 
     public void ReturnToMainMenu()
