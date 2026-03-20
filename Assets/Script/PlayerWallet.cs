@@ -11,7 +11,7 @@ public class PlayerWallet : MonoBehaviour
     [Header("UI แสดงเงินตอนเดินปกติ")]
     public TextMeshProUGUI textWalletHUD; // ✅ ลาก Text ใน HUD มาใส่
 
-    private int currentMoney;
+    public int currentMoney;
 
     void Awake()
     {

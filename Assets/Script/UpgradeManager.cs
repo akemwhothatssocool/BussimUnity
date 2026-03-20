@@ -11,12 +11,12 @@ public class UpgradeManager : MonoBehaviour
 
     [Header("=== 1. อัปเกรดเครื่องยนต์ (ลดค่าน้ำมัน) ===")]
     public int engineUpgradeCost = 500;
-    public int gasReductionAmount = 50; // ลดค่าน้ำมันลงทีละ 50 บาท
+    public int gasReductionAmount = 50; 
     public TextMeshProUGUI txtEngineCost;
 
     [Header("=== 2. อัปเกรดเบาะนั่ง (เพิ่มความนิยม) ===")]
     public int seatUpgradeCost = 600;
-    public float popularityBoost = 15f; // เพิ่มความนิยม 15% ทันที
+    public float popularityBoost = 15f; 
     public TextMeshProUGUI txtSeatCost;
 
     void Awake()
@@ -29,25 +29,26 @@ public class UpgradeManager : MonoBehaviour
         if (upgradePanel != null) upgradePanel.SetActive(false);
     }
 
-    // ฟังก์ชันเปิดหน้าจออัปเกรด (เรียกจากปุ่ม Upgrade Bus ในหน้าจบวัน)
     public void OpenMenu()
     {
         if (upgradePanel != null) upgradePanel.SetActive(true);
         UpdateUI();
     }
 
-    // ฟังก์ชันปิดหน้าจออัปเกรด
     public void CloseMenu()
     {
         if (upgradePanel != null) upgradePanel.SetActive(false);
     }
 
-    // อัปเดตตัวเลขบนหน้าจอ
     public void UpdateUI()
     {
-        if (GameManager.Instance == null) return;
+        // 🌟 ดึงเงินจาก PlayerWallet มาโชว์
+        if (txtTotalMoney && PlayerWallet.Instance != null) 
+        {
+            // 💡 หมายเหตุ: ถ้าใน PlayerWallet ของคุณไม่ได้ตั้งชื่อตัวแปรว่า currentMoney ให้แก้ชื่อตรงนี้ให้ตรงกันนะครับ (เช่น อาจจะชื่อ money เฉยๆ)
+            txtTotalMoney.text = $"เงินเก็บ: {PlayerWallet.Instance.currentMoney} ฿"; 
+        }
 
-        if (txtTotalMoney) txtTotalMoney.text = $"เงินเก็บ: {GameManager.Instance.totalMoney} ฿";
         if (txtEngineCost) txtEngineCost.text = $"{engineUpgradeCost} ฿";
         if (txtSeatCost) txtSeatCost.text = $"{seatUpgradeCost} ฿";
     }
@@ -57,39 +58,49 @@ public class UpgradeManager : MonoBehaviour
     // ==========================================
     public void BuyEngineUpgrade()
     {
-        if (GameManager.Instance.totalMoney >= engineUpgradeCost)
+        // 🌟 เช็กเงินจาก PlayerWallet
+        if (PlayerWallet.Instance != null && PlayerWallet.Instance.currentMoney >= engineUpgradeCost)
         {
-            // 1. หักเงิน
-            GameManager.Instance.totalMoney -= engineUpgradeCost;
-
-            // 2. ลดค่าน้ำมัน (ห้ามติดลบ)
-            GameManager.Instance.dailyGasCost = Mathf.Max(0, GameManager.Instance.dailyGasCost - gasReductionAmount);
-
-            // 3. เพิ่มราคาอัปเกรดครั้งต่อไป (ให้เกมยากขึ้น)
-            engineUpgradeCost += 300;
-
+            // 1. หักเงิน โดยใช้คำสั่ง AddMoney แต่ส่งค่าติดลบเข้าไป
+            PlayerWallet.Instance.AddMoney(-engineUpgradeCost);
+            
+            // 2. ลดค่าน้ำมัน 
+            if (GameManager.Instance != null)
+                GameManager.Instance.dailyGasCost = Mathf.Max(0, GameManager.Instance.dailyGasCost - gasReductionAmount);
+            
+            // 3. เพิ่มราคาอัปเกรดครั้งต่อไป
+            engineUpgradeCost += 300; 
+            
             UpdateUI();
             Debug.Log("อัปเกรดเครื่องยนต์สำเร็จ! ค่าน้ำมันถูกลงแล้ว");
         }
         else
         {
             Debug.Log("เงินไม่พอซื้อเครื่องยนต์จ้า!");
-            // TODO: อนาคตอาจจะทำเสียง "ติ๊ดๆ" หรือข้อความเด้งเตือนว่าเงินไม่พอ
         }
     }
 
     public void BuySeatUpgrade()
     {
-        if (GameManager.Instance.totalMoney >= seatUpgradeCost)
+        // 🌟 เช็กเงินจาก PlayerWallet
+        if (PlayerWallet.Instance != null && PlayerWallet.Instance.currentMoney >= seatUpgradeCost)
         {
             // 1. หักเงิน
-            GameManager.Instance.totalMoney -= seatUpgradeCost;
-
-            // 2. 🌟 ย้ายไปบวกที่ "โบนัสถาวร" แทน! (ผู้โดยสารโกรธก็หักตัวนี้ไม่ได้แล้ว)
-            GameManager.Instance.permanentPopularityBonus += popularityBoost;
-
+            PlayerWallet.Instance.AddMoney(-seatUpgradeCost);
+            
+            // 2. เพิ่มโบนัสความนิยมถาวรใน GameManager
+            if (GameManager.Instance != null)
+                GameManager.Instance.permanentPopularityBonus += popularityBoost;
+            
             // 3. เพิ่มราคาอัปเกรดครั้งต่อไป
-            seatUpgradeCost += 400;
+            seatUpgradeCost += 400; 
+            
+            // อัปเดตดาวโชว์ทันที
+            if (GameManager.Instance != null && GameManager.Instance.busRateDisplay != null)
+            {
+                float finalPop = Mathf.Clamp(GameManager.Instance.popularity + GameManager.Instance.permanentPopularityBonus, 0f, 100f);
+                GameManager.Instance.busRateDisplay.UpdateBusRate(finalPop / 20f);
+            }
 
             UpdateUI();
             Debug.Log($"อัปเกรดเบาะสำเร็จ! ได้โบนัสถาวร +{popularityBoost}%");
