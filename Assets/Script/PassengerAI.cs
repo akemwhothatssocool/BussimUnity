@@ -47,6 +47,11 @@ public class PassengerAI : MonoBehaviour, IInteractable
     public CityManager cityManager;
     private FareSystem fareSystem;
 
+    // 🟢 เพิ่มใหม่: หมวดหมู่ระบบตัวเหม็น
+    [Header("ระบบตัวเหม็น (Toxic)")]
+    public bool isToxic = false;      // ติ๊กเพื่อกำหนดให้ NPC ตัวนี้เหม็นตั้งแต่เกิด (หรือจะสุ่มจาก Spawner ก็ได้)
+    public GameObject toxicVFX;       // ลากออบเจกต์ควันพิษ (Toxic / ToxicSmoke) มาใส่ช่องนี้
+
     [Header("Events")]
     public Action onExitBus;
 
@@ -72,13 +77,27 @@ public class PassengerAI : MonoBehaviour, IInteractable
             agent.stoppingDistance = 0.3f;
         }
 
-        // ❌ ไม่เรียก GoToSeat ตรงนี้แล้ว เพราะต้องรอคนขับจอดป้ายก่อน
+        // 🟢 เพิ่มใหม่: เช็กสถานะตัวเหม็นตอนเริ่มเกม แล้วเปิด/ปิดควันตามค่า isToxic
+        if (toxicVFX != null)
+        {
+            toxicVFX.SetActive(isToxic);
+        }
     }
 
     void Update()
     {
         UpdateAnimationSpeed();
         UpdateMoodOverTime();
+    }
+
+    // 🟢 เพิ่มใหม่: ฟังก์ชันสำหรับสั่งเปิด/ปิดความเหม็นระหว่างเล่นเกม
+    public void SetToxicState(bool state)
+    {
+        isToxic = state;
+        if (toxicVFX != null)
+        {
+            toxicVFX.SetActive(isToxic);
+        }
     }
 
     void UpdateAnimationSpeed()
@@ -107,7 +126,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
     }
 
     // ===============================
-    // 🌟 ระบบขึ้นรถและหาที่นั่ง (ที่เคยจอดปกติ)
+    // 🌟 ระบบขึ้นรถและหาที่นั่ง
     // ===============================
 
     public void WaitAtStop(Transform waitPoint)
@@ -141,15 +160,13 @@ public class PassengerAI : MonoBehaviour, IInteractable
 
     IEnumerator WaitUntilSeated()
     {
-        yield return null; // รอ NavMesh ตื่น
+        yield return null;
 
-        // เดินไปที่ที่นั่ง
         while (agent.enabled && agent.isOnNavMesh && (agent.pathPending || agent.remainingDistance > 0.5f))
         {
             yield return null;
         }
 
-        // เมื่อถึงที่แล้ว ให้ทำท่าทาง
         if (mySeatPoint != null) yield return StartCoroutine(SnapToSeat(mySeatPoint));
 
         if (isSittingSeat)
@@ -168,7 +185,6 @@ public class PassengerAI : MonoBehaviour, IInteractable
 
     IEnumerator SnapToSeat(Transform seatPoint)
     {
-        // 🌟 แก้ Error: เช็คก่อนว่า Agent Active และอยู่บน NavMesh หรือเปล่า
         if (agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh)
         {
             agent.isStopped = true;
@@ -177,7 +193,6 @@ public class PassengerAI : MonoBehaviour, IInteractable
         if (agent != null) agent.enabled = false;
         if (animator != null) animator.SetFloat("Speed", 0f);
 
-        // ... (Logic การ Lerp เข้าที่นั่งเหมือนเดิม) ...
         float duration = 0.6f;
         float elapsed = 0f;
         Vector3 startPos = transform.position;
@@ -196,7 +211,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
     }
 
     // ===============================
-    // 🌟 ระบบคิดเงิน (แบบให้รางวัลคนทอนไว)
+    // 🌟 ระบบคิดเงิน
     // ===============================
 
     public bool CanInteract() { return currentState == State.WaitingForFare && !hasPaid && !isProcessingPayment; }
@@ -231,7 +246,6 @@ public class PassengerAI : MonoBehaviour, IInteractable
         currentState = State.Riding;
 
         float popularityChange = (currentWaitTime < timeToNeutral) ? 3f : 1f;
-
         if (GameManager.Instance != null) GameManager.Instance.AdjustPopularity(popularityChange);
 
         SetMood(Mood.None);
@@ -245,32 +259,26 @@ public class PassengerAI : MonoBehaviour, IInteractable
 
     IEnumerator RideAndGetOff()
     {
-        // 1. นั่งรอไปเรื่อยๆ จนกว่ารถจะจอด และถูก BusStopTrigger สะกิดให้ลง
-        // (เราให้ BusStopTrigger เป็นตัวตัดสินใจเปลี่ยน currentState ให้เป็น Exiting)
         yield return new WaitUntil(() => currentState == State.Exiting);
 
-        // 2. ถ้าลุกจากที่นั่ง ให้รอแอนิเมชันลุกแป๊บนึง
         if (isSittingSeat)
         {
             animator.SetBool("isSitting", false);
-            yield return new WaitForSeconds(1.5f); // รอให้ลุกขึ้นมายืนก่อน
+            yield return new WaitForSeconds(1.5f);
         }
 
-        // 3. เริ่มขั้นตอนการเดินออกจากรถ
         if (agent != null)
         {
             agent.enabled = true;
-            yield return null; // รอ 1 เฟรมให้ NavMesh ตื่น
+            yield return null;
 
             if (agent.isOnNavMesh && exitPoint != null)
             {
                 agent.isStopped = false;
                 agent.SetDestination(exitPoint.position);
 
-                // รอให้ NavMesh คำนวณเส้นทางให้เสร็จก่อน
                 yield return new WaitUntil(() => !agent.pathPending);
 
-                // รอจนกว่าน้องจะเดินไปถึงจุดทางลง
                 float timeout = 5f;
                 while (agent.remainingDistance > 0.5f && timeout > 0)
                 {
@@ -280,7 +288,6 @@ public class PassengerAI : MonoBehaviour, IInteractable
             }
         }
 
-        // 4. ลงรถเรียบร้อย ค่อยทำลาย Object
         Debug.Log($"{gameObject.name} ลงรถเรียบร้อยที่ป้ายตามเป้าหมายจ้า");
         onExitBus?.Invoke();
         Destroy(gameObject);
