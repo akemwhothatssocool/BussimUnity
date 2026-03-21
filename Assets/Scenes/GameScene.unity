@@ -983,7 +983,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: abf750825003ff34284e12b6a8840457, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWallet
-  startingMoney: 2000
+  startingMoney: 100
   textWalletHUD: {fileID: 322354949}
   currentMoney: 0
 --- !u!114 &56202935
@@ -1000,7 +1000,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   currentDay: 1
   stopsReached: 0
-  stopsPerDay: 4
+  stopsPerDay: 5
   dailyPassengers: 0
   dailyMissed: 0
   dailyIncome: 0
@@ -10838,7 +10838,7 @@ GameObject:
   - component: {fileID: 622255403}
   - component: {fileID: 622255402}
   m_Layer: 5
-  m_Name: Engine_image
+  m_Name: Chair_image
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -15458,7 +15458,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E04\u0E27\u0E32\u0E21\u0E40\u0E23\u0E47\u0E27\u0E23\u0E16"
+  m_text: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E04\u0E27\u0E32\u0E21\u0E08\u0E38\u0E19\u0E49\u0E33\u0E21\u0E31\u0E19\u0E23\u0E16"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: f71a1b2fe2982084aaca52f3d9290e05, type: 2}
   m_sharedMaterial: {fileID: 3161811329525349642, guid: f71a1b2fe2982084aaca52f3d9290e05, type: 2}
@@ -17980,7 +17980,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Engine Upgrade
+  m_text: Fuel Upgrade
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: e5d28cb6b90928d48a5f31bb780538c5, type: 2}
   m_sharedMaterial: {fileID: -6020180202787639182, guid: e5d28cb6b90928d48a5f31bb780538c5, type: 2}
@@ -22536,7 +22536,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E04\u0E27\u0E32\u0E21\u0E40\u0E23\u0E47\u0E27\u0E23\u0E16"
+  m_text: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E04\u0E27\u0E32\u0E21\u0E1E\u0E36\u0E07\u0E1E\u0E2D\u0E43\u0E08"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: f71a1b2fe2982084aaca52f3d9290e05, type: 2}
   m_sharedMaterial: {fileID: 3161811329525349642, guid: f71a1b2fe2982084aaca52f3d9290e05, type: 2}
@@ -22851,7 +22851,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Engine Upgrade
+  m_text: Chair Upgrade
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: e5d28cb6b90928d48a5f31bb780538c5, type: 2}
   m_sharedMaterial: {fileID: -6020180202787639182, guid: e5d28cb6b90928d48a5f31bb780538c5, type: 2}
@@ -28993,7 +28993,7 @@ GameObject:
   - component: {fileID: 1758035212}
   - component: {fileID: 1758035211}
   m_Layer: 5
-  m_Name: Engine_image
+  m_Name: Fuel_image
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
