@@ -10,7 +10,7 @@ public class GameManager : MonoBehaviour
     [Header("=== ระบบวันและป้าย ===")]
     public int currentDay = 1;
     public int stopsReached = 0;
-    public int stopsPerDay = 6;
+    public int stopsPerDay = 5;
 
     [Header("=== สถิติประจำวัน (Daily Stats) ===")]
     public int dailyPassengers = 0;
@@ -20,13 +20,16 @@ public class GameManager : MonoBehaviour
     public int dailyIncome = 0;
     public int dailyGasCost = 300;
     public int dailyRepairCost = 150;
-    public int totalMoney = 100;
+    // ❌ เอา public int totalMoney ออกไปเลย เพราะเราใช้ PlayerWallet แทนแล้ว 100%
+
+    [Header("=== โบนัสอัปเกรด (Upgrade Stats) ===")]
+    public float engineSpeedBonus = 0f; // 🌟 เตรียมไว้สำหรับอัปเกรดความเร็วรถ
+    public float permanentPopularityBonus = 0f;
 
     [Header("=== ระบบความนิยม ===")]
     [Tooltip("ความนิยม 0-100% (จะถูกแปลงเป็นดาว 0-5 ดวง)")]
     public float popularity = 50f;
     public float dailyPopularityGain = 12f;
-    public float permanentPopularityBonus = 0f;
 
     [Header("=== UI สรุปผลจบวัน (New UI) ===")]
     public GameObject summaryPanel;
@@ -85,20 +88,24 @@ public class GameManager : MonoBehaviour
     [ContextMenu("Test End Day")]
     public void EndDay()
     {
-        // 1. แก้บั๊ก State ค้าง
         FareSystem fare = Object.FindFirstObjectByType<FareSystem>();
         if (fare != null) fare.ForceResetSystem();
 
-        // 2. หยุดเวลา
         Time.timeScale = 0f;
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
 
-        // 3. คำนวณเงินสุทธิ
+        // 🌟 คำนวณเงินสุทธิ
         int netProfit = dailyIncome - dailyGasCost - dailyRepairCost;
-        totalMoney += netProfit;
 
-        // 4. โยนข้อมูลใส่ Text UI
+        // 🌟 หักค่าใช้จ่ายรายวันออกจากกระเป๋าตังค์ (เพราะรายได้ถูกบวกไปแล้วแบบ Real-time ตอนเก็บค่าตั๋ว)
+        if (PlayerWallet.Instance != null)
+        {
+            int dailyExpenses = dailyGasCost + dailyRepairCost;
+            PlayerWallet.Instance.AddMoney(-dailyExpenses);
+        }
+
+        // โยนข้อมูลใส่ Text UI
         if (txtPassengers) txtPassengers.text = dailyPassengers.ToString();
         if (txtStops) txtStops.text = stopsReached.ToString();
         if (txtMissed) txtMissed.text = dailyMissed.ToString();
@@ -119,18 +126,15 @@ public class GameManager : MonoBehaviour
             else txtPopularityGain.text = $"{dailyPopularityGain}";
         }
 
-        // 5. อัปเดตดาว
+        // อัปเดตดาว
         if (busRateDisplay != null)
         {
-            // เอาความนิยมหลัก + โบนัสเบาะถาวร (และล็อกไว้ไม่ให้ทะลุ 100)
             float finalPopularity = Mathf.Clamp(popularity + permanentPopularityBonus, 0f, 100f);
-
             float starRating = finalPopularity / 20f;
             busRateDisplay.UpdateBusRate(starRating);
             Debug.Log($"⭐ BusRate: {starRating} ดาว (คะแนนดิบ: {popularity}% + โบนัสเบาะ: {permanentPopularityBonus}%)");
         }
 
-        // เปิดหน้าจอ
         if (summaryPanel != null) summaryPanel.SetActive(true);
     }
 
@@ -166,7 +170,6 @@ public class GameManager : MonoBehaviour
 
     public void OpenUpgradeMenu()
     {
-        Debug.Log("เปิดหน้าต่าง Upgrade!");
         if (UpgradeManager.Instance != null)
         {
             UpgradeManager.Instance.OpenMenu();
@@ -175,8 +178,6 @@ public class GameManager : MonoBehaviour
 
     public void ReturnToMainMenu()
     {
-        Debug.Log("กดปุ่ม Menu! -> กลับไปหน้าจอหลัก");
-        // ถ้ามี Scene หน้าเมนู สามารถใช้คำสั่งนี้ได้ (อย่าลืม using UnityEngine.SceneManagement; ด้านบนสุด)
-        // UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu"); 
+        Debug.Log("กลับหน้าเมนูหลัก!");
     }
 }
