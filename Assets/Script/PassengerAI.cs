@@ -9,8 +9,10 @@ public class PassengerAI : MonoBehaviour, IInteractable
     public State currentState = State.Boarding;
     public int targetStop;
 
-    [Header("การตั้งค่าอารมณ์")]
     public enum Mood { None, Happy, Neutral, Angry }
+
+    // ✅ ย้าย Header มาอยู่บน field แทน
+    [Header("การตั้งค่าอารมณ์")]
     private SpriteRenderer moodIconRenderer;
     public Sprite iconHappy;
     public Sprite iconNeutral;
@@ -150,7 +152,12 @@ public class PassengerAI : MonoBehaviour, IInteractable
 
     public void WaitAtStop(Transform waitPoint)
     {
-        if (agent != null) { agent.isStopped = true; agent.enabled = false; }
+        // ✅ เช็ค isOnNavMesh ก่อนสั่ง isStopped เพื่อป้องกัน error
+        if (agent != null)
+        {
+            if (agent.isOnNavMesh) agent.isStopped = true;
+            agent.enabled = false;
+        }
         if (rb != null) { rb.isKinematic = true; rb.linearVelocity = Vector3.zero; }
 
         transform.position = waitPoint.position;

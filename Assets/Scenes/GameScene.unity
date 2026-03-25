@@ -1028,7 +1028,7 @@ MonoBehaviour:
   dailyRepairCost: 0
   engineSpeedBonus: 0
   permanentPopularityBonus: 0
-  popularity: 20
+  popularity: 60
   dailyPopularityGain: 0
   summaryPanel: {fileID: 957029031}
   txtPassengers: {fileID: 1742438724}
@@ -22103,6 +22103,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 49b54590ccd057b4aa61b13e22e22ae3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCSpawner
+  npcPrefab: {fileID: 0}
   moneyPrefabs:
   - {fileID: 1560146044714351802, guid: 915cd8c39b4a1ff44b44fdcb2709229f, type: 3}
   - {fileID: 6291849445942825846, guid: d85c6666233af7148804da1fa08d31e3, type: 3}

@@ -14,21 +14,19 @@ public class BusStopTrigger : MonoBehaviour
     public float spawnDistance = 50f;
 
     private bool _hasTriggeredStop = false;
-    private bool _hasTriggeredSpawn = false; // 🌟 เพิ่มตัวแปรเช็คการเสกคน
+    private bool _hasTriggeredSpawn = false;
 
     void Update()
     {
         float dist = Mathf.Abs(transform.position.x - busStopX);
 
-        // 1. ระบบเช็คจุดเกิด: เปลี่ยนมาเรียก TriggerSpawn (เสกเป็นกลุ่ม)
         if (dist >= spawnDistance && !_hasTriggeredSpawn && !_hasTriggeredStop)
         {
             _hasTriggeredSpawn = true;
-            busStopManager.TriggerSpawn(); // 🌟 สั่งเสกกลุ่มตามความนิยม (1-5 คน)
+            busStopManager.TriggerSpawn();
             Debug.Log("สั่งเสกกลุ่มผู้โดยสารที่ป้าย!");
         }
 
-        // 2. ระบบเช็คจุดจอด
         if (!_hasTriggeredStop && dist <= stopThreshold)
         {
             _hasTriggeredStop = true;
@@ -42,28 +40,32 @@ public class BusStopTrigger : MonoBehaviour
         yield return new WaitUntil(() => Mathf.Abs(cityManager._currentSpeed) < 0.05f);
 
         // ==========================================
-        // 🌟 1. ระบบสั่งคนลงรถ (เพิ่มใหม่ตรงนี้!)
+        // 🌟 1. สั่งผู้โดยสารที่ถึงป้ายเป้าหมายลงรถ
         // ==========================================
-        // ต้องบวก 1 เพราะป้ายปัจจุบันยังไม่ได้รัน GameManager.AddStop() 
         int currentStopNumber = GameManager.Instance.stopsReached + 1;
 
-        // หา NPC ทั้งหมดในฉาก
         PassengerAI[] passengersOnBus = Object.FindObjectsByType<PassengerAI>(FindObjectsSortMode.None);
         foreach (var p in passengersOnBus)
         {
-            // ถ้า NPC คนนี้นั่งอยู่ (หรือจ่ายเงินเสร็จแล้ว) และป้ายปัจจุบันถึงเป้าหมายแล้ว
-            if (p.currentState == PassengerAI.State.Seated && currentStopNumber >= p.targetStop)
-            {
-                p.currentState = PassengerAI.State.Exiting; // สั่งเปลี่ยนสถานะให้เดินลงรถ!
-                Debug.Log($"ผู้โดยสารลงรถที่ป้าย {currentStopNumber}");
+            if (currentStopNumber < p.targetStop) continue;
 
-                // 💡 หมายเหตุ: ถ้าใน PassengerAI ของคุณมีฟังก์ชันสั่งให้เดินลงโดยเฉพาะ (เช่น p.StartExiting()) 
-                // ให้เรียกฟังก์ชันนั้นตรงนี้ด้วยนะครับ
+            // ✅ แก้บั๊ก 1: เช็คทุก state ที่ผู้โดยสารอาจอยู่บนรถ
+            // ไม่ว่าจะจ่ายเงินแล้วหรือยัง ถึงป้ายก็ต้องลง
+            bool isOnBus = p.currentState == PassengerAI.State.WaitingForFare ||
+                           p.currentState == PassengerAI.State.HandExtended    ||
+                           p.currentState == PassengerAI.State.Paying          ||
+                           p.currentState == PassengerAI.State.Riding;
+
+            if (isOnBus)
+            {
+                // ✅ แก้บั๊ก 2: เรียก TriggerExit() แทนการตั้ง state ตรงๆ
+                p.TriggerExit();
+                Debug.Log($"{p.gameObject.name} ลงรถที่ป้าย {currentStopNumber} (จ่ายตั๋ว: {p.hasPaidTicket})");
             }
         }
         // ==========================================
 
-        // 2. ระบบสั่งคนขึ้นรถ (ของเดิม)
+        // 2. สั่งคนขึ้นรถ
         busStopManager.StartBoarding();
 
         // 3. รอจนกว่าทั้ง "คนขึ้น" และ "คนลง" ทำงานเสร็จหมด
@@ -71,7 +73,7 @@ public class BusStopTrigger : MonoBehaviour
 
         yield return new WaitForSeconds(1.0f);
 
-        // 4. อัปเดตจำนวนป้ายในระบบ
+        // 4. อัปเดตจำนวนป้าย
         if (GameManager.Instance != null)
             GameManager.Instance.AddStop();
 
@@ -82,10 +84,8 @@ public class BusStopTrigger : MonoBehaviour
         _hasTriggeredSpawn = false;
     }
 
-    // 🌟 เพิ่มฟังก์ชันนี้ไว้ใน BusStopTrigger.cs ด้วยนะครับ (วางไว้นอก IEnumerator)
     bool AnyPassengerExiting()
     {
-        // หา NPC ทั้งหมดในฉากมาเช็คสถานะ
         PassengerAI[] passengers = Object.FindObjectsByType<PassengerAI>(FindObjectsSortMode.None);
         foreach (var p in passengers)
         {
