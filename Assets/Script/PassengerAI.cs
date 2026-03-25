@@ -10,12 +10,28 @@ public class PassengerAI : MonoBehaviour, IInteractable
     public int targetStop;
 
     [Header("การตั้งค่าอารมณ์")]
-    public bool hasPaid = false;
     public enum Mood { None, Happy, Neutral, Angry }
     private SpriteRenderer moodIconRenderer;
     public Sprite iconHappy;
     public Sprite iconNeutral;
     public Sprite iconAngry;
+
+    // ✅ ประกาศตัวแปรครั้งเดียว — ใช้ตัวนี้ทั้งระบบ
+    // hasPaid       = ผู้เล่นเริ่ม interact แล้ว (FareSystem เริ่ม transaction)
+    // hasPaidTicket = ปิด transaction เสร็จสมบูรณ์ (FareSystem.CloseTransaction เรียก setter นี้)
+    [HideInInspector] public bool hasPaid = false;
+
+    private bool _hasPaidTicket = false;
+    public bool hasPaidTicket
+    {
+        get => _hasPaidTicket;
+        set
+        {
+            _hasPaidTicket = value;
+            // ซิงค์ hasPaid ไปด้วยเสมอ เพื่อป้องกัน logic แตก
+            if (value) hasPaid = true;
+        }
+    }
 
     [Header("ตั้งค่าความอดทน (วินาที)")]
     public float timeToNeutral = 10f;
@@ -47,16 +63,16 @@ public class PassengerAI : MonoBehaviour, IInteractable
     public CityManager cityManager;
     private FareSystem fareSystem;
 
-    // 🟢 เพิ่มใหม่: หมวดหมู่ระบบตัวเหม็น
     [Header("ระบบตัวเหม็น (Toxic)")]
-    public bool isToxic = false;      // ติ๊กเพื่อกำหนดให้ NPC ตัวนี้เหม็นตั้งแต่เกิด (หรือจะสุ่มจาก Spawner ก็ได้)
-    public GameObject toxicVFX;       // ลากออบเจกต์ควันพิษ (Toxic / ToxicSmoke) มาใส่ช่องนี้
+    public bool isToxic = false;
+    public GameObject toxicVFX;
 
     [Header("Events")]
     public Action onExitBus;
 
     private bool isProcessingPayment = false;
 
+    // ===============================
     void Start()
     {
         fareSystem = FindFirstObjectByType<FareSystem>();
@@ -64,7 +80,6 @@ public class PassengerAI : MonoBehaviour, IInteractable
 
         if (moneyProp != null) moneyProp.SetActive(false);
 
-        // หา MoodIcon
         Transform iconTransform = transform.Find("MoodIcon");
         if (iconTransform != null) moodIconRenderer = iconTransform.GetComponent<SpriteRenderer>();
 
@@ -77,11 +92,8 @@ public class PassengerAI : MonoBehaviour, IInteractable
             agent.stoppingDistance = 0.3f;
         }
 
-        // 🟢 เพิ่มใหม่: เช็กสถานะตัวเหม็นตอนเริ่มเกม แล้วเปิด/ปิดควันตามค่า isToxic
         if (toxicVFX != null)
-        {
             toxicVFX.SetActive(isToxic);
-        }
     }
 
     void Update()
@@ -90,15 +102,20 @@ public class PassengerAI : MonoBehaviour, IInteractable
         UpdateMoodOverTime();
     }
 
-    // 🟢 เพิ่มใหม่: ฟังก์ชันสำหรับสั่งเปิด/ปิดความเหม็นระหว่างเล่นเกม
+    // ===============================
+    // 🌟 ระบบ Toxic
+    // ===============================
+
     public void SetToxicState(bool state)
     {
         isToxic = state;
         if (toxicVFX != null)
-        {
             toxicVFX.SetActive(isToxic);
-        }
     }
+
+    // ===============================
+    // 🌟 Animation
+    // ===============================
 
     void UpdateAnimationSpeed()
     {
@@ -116,12 +133,14 @@ public class PassengerAI : MonoBehaviour, IInteractable
 
     void UpdateMoodOverTime()
     {
-        if (currentState == State.WaitingForFare || currentState == State.Paying || currentState == State.HandExtended)
+        if (currentState == State.WaitingForFare ||
+            currentState == State.Paying ||
+            currentState == State.HandExtended)
         {
             currentWaitTime += Time.deltaTime;
-            if (currentWaitTime >= timeToAngry) SetMood(Mood.Angry);
+            if (currentWaitTime >= timeToAngry)      SetMood(Mood.Angry);
             else if (currentWaitTime >= timeToNeutral) SetMood(Mood.Neutral);
-            else SetMood(Mood.Happy);
+            else                                       SetMood(Mood.Happy);
         }
     }
 
@@ -162,12 +181,14 @@ public class PassengerAI : MonoBehaviour, IInteractable
     {
         yield return null;
 
-        while (agent.enabled && agent.isOnNavMesh && (agent.pathPending || agent.remainingDistance > 0.5f))
+        while (agent.enabled && agent.isOnNavMesh &&
+               (agent.pathPending || agent.remainingDistance > 0.5f))
         {
             yield return null;
         }
 
-        if (mySeatPoint != null) yield return StartCoroutine(SnapToSeat(mySeatPoint));
+        if (mySeatPoint != null)
+            yield return StartCoroutine(SnapToSeat(mySeatPoint));
 
         if (isSittingSeat)
         {
@@ -181,14 +202,15 @@ public class PassengerAI : MonoBehaviour, IInteractable
 
         currentState = State.WaitingForFare;
         currentWaitTime = 0f;
+
+        // ✅ แก้บั๊ก 1: เริ่ม coroutine ลงรถให้ทุกคน ไม่ว่าจะจ่ายเงินหรือไม่ก็ตาม
+        StartCoroutine(RideAndGetOff());
     }
 
     IEnumerator SnapToSeat(Transform seatPoint)
     {
         if (agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh)
-        {
             agent.isStopped = true;
-        }
 
         if (agent != null) agent.enabled = false;
         if (animator != null) animator.SetFloat("Speed", 0f);
@@ -206,6 +228,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
             elapsed += Time.deltaTime;
             yield return null;
         }
+
         transform.position = seatPoint.position;
         transform.rotation = seatPoint.rotation;
     }
@@ -214,7 +237,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
     // 🌟 ระบบคิดเงิน
     // ===============================
 
-    public bool CanInteract() { return currentState == State.WaitingForFare && !hasPaid && !isProcessingPayment; }
+    public bool CanInteract() => currentState == State.WaitingForFare && !hasPaid && !isProcessingPayment;
 
     public void Interact()
     {
@@ -224,7 +247,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
         if (animator != null)
         {
             if (isRightSide) animator.SetTrigger("trigSitGiveR");
-            else animator.SetTrigger("trigSitGiveL");
+            else             animator.SetTrigger("trigSitGiveL");
         }
 
         if (moneyProp != null) moneyProp.SetActive(true);
@@ -240,33 +263,45 @@ public class PassengerAI : MonoBehaviour, IInteractable
         isProcessingPayment = false;
     }
 
+    /// <summary>
+    /// เรียกจาก FareSystem.CloseTransaction() เมื่อรับเงินครบและทอนเสร็จแล้ว
+    /// </summary>
     public void PaymentCompleted()
     {
-        hasPaid = true;
+        // ✅ ตั้งค่าทั้งสองตัวพร้อมกัน — ไม่มีทางหลุดอีกแล้ว
+        hasPaidTicket = true; // setter จะตั้ง hasPaid = true ให้อัตโนมัติ
+
         currentState = State.Riding;
 
         float popularityChange = (currentWaitTime < timeToNeutral) ? 3f : 1f;
-        if (GameManager.Instance != null) GameManager.Instance.AdjustPopularity(popularityChange);
+        if (GameManager.Instance != null)
+            GameManager.Instance.AdjustPopularity(popularityChange);
 
         SetMood(Mood.None);
         if (moneyProp != null) moneyProp.SetActive(false);
-        StartCoroutine(RideAndGetOff());
+
+        // ✅ ไม่ต้อง StartCoroutine ใหม่ — RideAndGetOff() เริ่มไว้แล้วตั้งแต่นั่งลงที่นั่ง
     }
 
     // ===============================
-    // 🌟 ระบบลงรถ
+    // 🌟 ระบบลงรถ + เช็กหนีตั๋ว
     // ===============================
 
     IEnumerator RideAndGetOff()
     {
+        // รอจนกว่า BusController/StopManager จะเรียก TriggerExit() เพื่อเปลี่ยน State เป็น Exiting
         yield return new WaitUntil(() => currentState == State.Exiting);
 
+        OnReachDestinationAndGetOff();
+
+        // ลุกจากที่นั่ง
         if (isSittingSeat)
         {
             animator.SetBool("isSitting", false);
             yield return new WaitForSeconds(1.5f);
         }
 
+        // เดินไปจุดลง
         if (agent != null)
         {
             agent.enabled = true;
@@ -288,21 +323,69 @@ public class PassengerAI : MonoBehaviour, IInteractable
             }
         }
 
-        Debug.Log($"{gameObject.name} ลงรถเรียบร้อยที่ป้ายตามเป้าหมายจ้า");
         onExitBus?.Invoke();
         Destroy(gameObject);
+    }
+
+    /// <summary>
+    /// เรียกจาก RideAndGetOff() ทันทีที่ถึงป้ายเป้าหมาย
+    /// ตรวจสอบว่าจ่ายตั๋วหรือเปล่า แล้วจัดการ penalty / reward
+    /// </summary>
+    private void OnReachDestinationAndGetOff()
+    {
+        if (!hasPaidTicket)
+        {
+            // 🚨 ผู้โดยสารหนีตั๋ว — ผู้เล่นลืมเก็บเงิน
+            Debug.Log($"{gameObject.name}: หวานเจี๊ยบ นั่งฟรีโว้ย! (ผู้โดยสารเนียนลงรถฟรี)");
+
+            if (GameManager.Instance != null)
+                GameManager.Instance.AdjustPopularity(-5f);
+
+            // ✅ แก้บั๊ก 3: ซ่อน moneyProp ก่อนลงรถ ไม่งั้น prop ลอยค้าง
+            if (moneyProp != null) moneyProp.SetActive(false);
+
+            // แสดงสีหน้าเยาะเย้ย
+            SetMood(Mood.Happy);
+        }
+        else
+        {
+            // ✅ จ่ายเงินแล้ว — ลงรถตามปกติ
+            Debug.Log($"{gameObject.name}: ลงรถเรียบร้อย ขอบคุณที่ใช้บริการ");
+            SetMood(Mood.None);
+        }
+    }
+
+    // ===============================
+    // 🌟 Utility
+    // ===============================
+
+    /// <summary>
+    /// เรียกจาก BusController หรือ StopManager เมื่อรถถึงป้ายที่ผู้โดยสารต้องลง
+    /// </summary>
+    public void TriggerExit()
+    {
+        // ✅ แก้บั๊ก 2: รับทุก state ที่ผู้โดยสารยังอยู่บนรถ
+        // (WaitingForFare / HandExtended / Paying = ยังไม่จ่าย, Riding = จ่ายแล้ว)
+        bool isOnBus = currentState == State.WaitingForFare ||
+                       currentState == State.HandExtended    ||
+                       currentState == State.Paying          ||
+                       currentState == State.Riding;
+
+        if (isOnBus)
+            currentState = State.Exiting;
     }
 
     public void SetMood(Mood newMood)
     {
         if (moodIconRenderer == null) return;
         if (newMood == Mood.None) { moodIconRenderer.gameObject.SetActive(false); return; }
+
         moodIconRenderer.gameObject.SetActive(true);
         switch (newMood)
         {
-            case Mood.Happy: moodIconRenderer.sprite = iconHappy; break;
+            case Mood.Happy:   moodIconRenderer.sprite = iconHappy;   break;
             case Mood.Neutral: moodIconRenderer.sprite = iconNeutral; break;
-            case Mood.Angry: moodIconRenderer.sprite = iconAngry; break;
+            case Mood.Angry:   moodIconRenderer.sprite = iconAngry;   break;
         }
     }
 
@@ -314,8 +397,8 @@ public class PassengerAI : MonoBehaviour, IInteractable
 
     public string GetPromptText()
     {
-        if (currentState == State.WaitingForFare) return "กด E เพื่อรับเงิน";
-        if (currentState == State.HandExtended) return "คลิกเพื่อรับเงิน";
+        if (currentState == State.WaitingForFare)  return "กด E เพื่อรับเงิน";
+        if (currentState == State.HandExtended)    return "คลิกเพื่อรับเงิน";
         return "";
     }
 

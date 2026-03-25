@@ -33,6 +33,7 @@ public class FareSystem : MonoBehaviour
     private bool isTransactionActive = false;
     private bool waitingForCollection = false;
     private int npcPlannedPayment = 0;
+    private bool isProcessingSubmit = false;
 
     [Header("=== 5. ข้อมูล NPC & Player ===")]
     public PassengerAI currentPassenger;
@@ -211,57 +212,68 @@ public class FareSystem : MonoBehaviour
     }
 
     public void SubmitTransaction()
-    {
-        if (!isTransactionActive) return;
-        int correctChange = moneyReceived - currentTicket.price;
-        int diff = currentChange - correctChange;
+{
+    // 🌟 ดักไว้ไม่ให้กดยืนยันรัวๆ ตอนที่กำลังประมวลผลข้อความอยู่
+    if (!isTransactionActive || isProcessingSubmit) return; 
 
-        if (moneyReceived >= currentTicket.price && diff >= 0) isTransactionActive = false;
-        StartCoroutine(ShowResultAndClose(diff));
+    int correctChange = moneyReceived - currentTicket.price;
+    int diff = currentChange - correctChange;
+
+    if (moneyReceived >= currentTicket.price && diff >= 0) 
+        isTransactionActive = false;
+
+    StartCoroutine(ShowResultAndClose(diff));
+}
+
+IEnumerator ShowResultAndClose(int diff)
+{
+    isProcessingSubmit = true; // 🔒 ล็อกการกดยืนยันชั่วคราว
+
+    if (moneyReceived == 0)
+    {
+        textStatus.text = "รับเงินก่อน!";
+        textStatus.color = Color.red;
+        yield return new WaitForSeconds(1.2f);
+        isProcessingSubmit = false; // 🔓 ปลดล็อกให้กดใหม่ได้
+        yield break;
     }
 
-    IEnumerator ShowResultAndClose(int diff)
+    if (moneyReceived < currentTicket.price)
     {
-        if (moneyReceived == 0)
-        {
-            textStatus.text = "รับเงินก่อน!";
-            textStatus.color = Color.red;
-            yield return new WaitForSeconds(1.2f);
-            yield break;
-        }
-
-        if (moneyReceived < currentTicket.price)
-        {
-            textStatus.text = "เงินไม่พอ!";
-            yield return new WaitForSeconds(1.2f);
-        }
-        else if (diff == 0)
-        {
-            if (GameManager.Instance != null) GameManager.Instance.AdjustPopularity(2f);
-            PlayStatusSound(sfxSuccess);
-            textStatus.text = successQuotes[Random.Range(0, successQuotes.Length)];
-            textStatus.color = Color.green;
-            yield return new WaitForSeconds(1.8f);
-            CloseTransaction();
-        }
-        else if (diff < 0)
-        {
-            if (GameManager.Instance != null) GameManager.Instance.AdjustPopularity(-10f);
-            PlayStatusSound(sfxFailUnder);
-            textStatus.text = failUnderQuotes[Random.Range(0, failUnderQuotes.Length)];
-            textStatus.color = Color.red;
-            yield return new WaitForSeconds(1.8f);
-        }
-        else
-        {
-            if (GameManager.Instance != null) GameManager.Instance.AdjustPopularity(5f);
-            PlayStatusSound(sfxFailOver);
-            textStatus.text = failOverQuotes[Random.Range(0, failOverQuotes.Length)];
-            textStatus.color = Color.yellow;
-            yield return new WaitForSeconds(2.5f);
-            CloseTransaction();
-        }
+        textStatus.text = "เงินไม่พอ!";
+        yield return new WaitForSeconds(1.2f);
+        isProcessingSubmit = false; // 🔓 ปลดล็อกให้รับเงินเพิ่มได้
     }
+    else if (diff == 0)
+    {
+        if (GameManager.Instance != null) GameManager.Instance.AdjustPopularity(2f);
+        PlayStatusSound(sfxSuccess);
+        textStatus.text = successQuotes[Random.Range(0, successQuotes.Length)];
+        textStatus.color = Color.green;
+        yield return new WaitForSeconds(1.8f);
+        isProcessingSubmit = false;
+        CloseTransaction();
+    }
+    else if (diff < 0)
+    {
+        if (GameManager.Instance != null) GameManager.Instance.AdjustPopularity(-10f);
+        PlayStatusSound(sfxFailUnder);
+        textStatus.text = failUnderQuotes[Random.Range(0, failUnderQuotes.Length)];
+        textStatus.color = Color.red;
+        yield return new WaitForSeconds(1.8f);
+        isProcessingSubmit = false; // 🔓 ปลดล็อกให้ทอนเงินเพิ่มได้
+    }
+    else
+    {
+        if (GameManager.Instance != null) GameManager.Instance.AdjustPopularity(5f);
+        PlayStatusSound(sfxFailOver);
+        textStatus.text = failOverQuotes[Random.Range(0, failOverQuotes.Length)];
+        textStatus.color = Color.yellow;
+        yield return new WaitForSeconds(2.5f);
+        isProcessingSubmit = false;
+        CloseTransaction();
+    }
+}
 
     void CloseTransaction()
     {
@@ -269,9 +281,10 @@ public class FareSystem : MonoBehaviour
         if (PlayerWallet.Instance != null) PlayerWallet.Instance.AddMoney(profit);
         if (GameManager.Instance != null) GameManager.Instance.AddDailyIncome(profit);
 
-        // 🌟 1. สั่งให้ NPC รู้ว่าจ่ายเงินเสร็จแล้ว (ปิดไอคอน/เดินเข้าที่) ต้องทำก่อนโดน Reset!
+        // 🌟 1. อัปเดตสถานะ NPC และสั่งให้รู้ว่าจ่ายเงินเสร็จแล้ว
         if (currentPassenger != null)
         {
+            currentPassenger.hasPaidTicket = true; // ✅ เพิ่มบรรทัดนี้ตามที่ต้องการ
             currentPassenger.PaymentCompleted();
         }
 
@@ -282,7 +295,7 @@ public class FareSystem : MonoBehaviour
             npcAnimator.SetTrigger(trig);
         }
 
-        // 🌟 3. ล้างความจำและเคลียร์ระบบทั้งหมด (เอาไว้ล่างสุด)
+        // 🌟 3. ล้างความจำและเคลียร์ระบบทั้งหมด
         ForceResetSystem();
     }
 

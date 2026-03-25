@@ -351,6 +351,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 47836558}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 47836559}
   m_SourcePrefab: {fileID: 100100000, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
 --- !u!4 &20263350 stripped
 Transform:
@@ -847,6 +850,23 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -9219147555825907903, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
+--- !u!114 &47836559
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 47836555}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  isBroken: 1
+  repairCost: 150
+  brokenSeatModel: {fileID: 0}
+  goodSeatModel: {fileID: 0}
+  repairPromptUI: {fileID: 0}
 --- !u!1 &52975868
 GameObject:
   m_ObjectHideFlags: 0
@@ -2443,6 +2463,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 139795995}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 139795996}
   m_SourcePrefab: {fileID: 100100000, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
 --- !u!4 &139795992 stripped
 Transform:
@@ -2471,6 +2494,23 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -9219147555825907903, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
+--- !u!114 &139795996
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 58264843}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  isBroken: 1
+  repairCost: 150
+  brokenSeatModel: {fileID: 0}
+  goodSeatModel: {fileID: 0}
+  repairPromptUI: {fileID: 0}
 --- !u!1 &143305295
 GameObject:
   m_ObjectHideFlags: 0
@@ -6243,6 +6283,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1797407703}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1797407704}
   m_SourcePrefab: {fileID: 100100000, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
 --- !u!4 &335185234 stripped
 Transform:
@@ -8409,6 +8452,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d7941f2c4661a4c3b9e0bca6e69fd5a5, type: 3}
       insertIndex: -1
       addedObject: {fileID: 480984229}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d7941f2c4661a4c3b9e0bca6e69fd5a5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 480984230}
   m_SourcePrefab: {fileID: 100100000, guid: d7941f2c4661a4c3b9e0bca6e69fd5a5, type: 3}
 --- !u!4 &480984226 stripped
 Transform:
@@ -8437,6 +8483,23 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -4331276723521888601, guid: d7941f2c4661a4c3b9e0bca6e69fd5a5, type: 3}
+--- !u!114 &480984230
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 159868545}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  isBroken: 1
+  repairCost: 150
+  brokenSeatModel: {fileID: 0}
+  goodSeatModel: {fileID: 0}
+  repairPromptUI: {fileID: 0}
 --- !u!1 &490413919
 GameObject:
   m_ObjectHideFlags: 0
@@ -14040,6 +14103,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 787902144}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 787902145}
   m_SourcePrefab: {fileID: 100100000, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
 --- !u!4 &787902141 stripped
 Transform:
@@ -14068,6 +14134,23 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -9219147555825907903, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
+--- !u!114 &787902145
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 455520027}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  isBroken: 1
+  repairCost: 150
+  brokenSeatModel: {fileID: 0}
+  goodSeatModel: {fileID: 0}
+  repairPromptUI: {fileID: 0}
 --- !u!1 &808131447
 GameObject:
   m_ObjectHideFlags: 0
@@ -16380,6 +16463,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1233365393}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1233365394}
   m_SourcePrefab: {fileID: 100100000, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
 --- !u!4 &949370864 stripped
 Transform:
@@ -17457,6 +17543,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1001764981}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1001764982}
   m_SourcePrefab: {fileID: 100100000, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
 --- !u!4 &1001764978 stripped
 Transform:
@@ -17485,6 +17574,23 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -9219147555825907903, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
+--- !u!114 &1001764982
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 643456654}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  isBroken: 1
+  repairCost: 150
+  brokenSeatModel: {fileID: 0}
+  goodSeatModel: {fileID: 0}
+  repairPromptUI: {fileID: 0}
 --- !u!1 &1010052617
 GameObject:
   m_ObjectHideFlags: 0
@@ -19600,6 +19706,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d7941f2c4661a4c3b9e0bca6e69fd5a5, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1883420809}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d7941f2c4661a4c3b9e0bca6e69fd5a5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1883420810}
   m_SourcePrefab: {fileID: 100100000, guid: d7941f2c4661a4c3b9e0bca6e69fd5a5, type: 3}
 --- !u!4 &1172662870 stripped
 Transform:
@@ -20396,6 +20505,23 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -9219147555825907903, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
+--- !u!114 &1233365394
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1233365390}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  isBroken: 1
+  repairCost: 150
+  brokenSeatModel: {fileID: 0}
+  goodSeatModel: {fileID: 0}
+  repairPromptUI: {fileID: 0}
 --- !u!1 &1233680276
 GameObject:
   m_ObjectHideFlags: 0
@@ -22148,6 +22274,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1329781415}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1329781416}
   m_SourcePrefab: {fileID: 100100000, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
 --- !u!4 &1329781412 stripped
 Transform:
@@ -22176,6 +22305,23 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -9219147555825907903, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
+--- !u!114 &1329781416
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 952537955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  isBroken: 1
+  repairCost: 150
+  brokenSeatModel: {fileID: 0}
+  goodSeatModel: {fileID: 0}
+  repairPromptUI: {fileID: 0}
 --- !u!1 &1332216275
 GameObject:
   m_ObjectHideFlags: 0
@@ -22337,6 +22483,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d7941f2c4661a4c3b9e0bca6e69fd5a5, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2093046630}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d7941f2c4661a4c3b9e0bca6e69fd5a5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2093046631}
   m_SourcePrefab: {fileID: 100100000, guid: d7941f2c4661a4c3b9e0bca6e69fd5a5, type: 3}
 --- !u!4 &1343789450 stripped
 Transform:
@@ -27995,6 +28144,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1735625173}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1735625174}
   m_SourcePrefab: {fileID: 100100000, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
 --- !u!4 &1686225152 stripped
 Transform:
@@ -28315,6 +28467,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d7941f2c4661a4c3b9e0bca6e69fd5a5, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1709207900}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d7941f2c4661a4c3b9e0bca6e69fd5a5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1709207901}
   m_SourcePrefab: {fileID: 100100000, guid: d7941f2c4661a4c3b9e0bca6e69fd5a5, type: 3}
 --- !u!4 &1709207897 stripped
 Transform:
@@ -28343,6 +28498,23 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -4331276723521888601, guid: d7941f2c4661a4c3b9e0bca6e69fd5a5, type: 3}
+--- !u!114 &1709207901
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 68691502}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  isBroken: 1
+  repairCost: 150
+  brokenSeatModel: {fileID: 0}
+  goodSeatModel: {fileID: 0}
+  repairPromptUI: {fileID: 0}
 --- !u!1 &1716805148
 GameObject:
   m_ObjectHideFlags: 0
@@ -28624,6 +28796,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1925270549}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1925270550}
   m_SourcePrefab: {fileID: 100100000, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
 --- !u!4 &1731255478 stripped
 Transform:
@@ -28657,6 +28832,23 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -9219147555825907903, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
+--- !u!114 &1735625174
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1735625170}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  isBroken: 1
+  repairCost: 150
+  brokenSeatModel: {fileID: 0}
+  goodSeatModel: {fileID: 0}
+  repairPromptUI: {fileID: 0}
 --- !u!1 &1737606448
 GameObject:
   m_ObjectHideFlags: 0
@@ -29241,6 +29433,23 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -9219147555825907903, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
+--- !u!114 &1797407704
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1797407700}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  isBroken: 1
+  repairCost: 150
+  brokenSeatModel: {fileID: 0}
+  goodSeatModel: {fileID: 0}
+  repairPromptUI: {fileID: 0}
 --- !u!1 &1798988403
 GameObject:
   m_ObjectHideFlags: 0
@@ -30610,6 +30819,23 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -4331276723521888601, guid: d7941f2c4661a4c3b9e0bca6e69fd5a5, type: 3}
+--- !u!114 &1883420810
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1883420806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  isBroken: 1
+  repairCost: 150
+  brokenSeatModel: {fileID: 0}
+  goodSeatModel: {fileID: 0}
+  repairPromptUI: {fileID: 0}
 --- !u!1 &1883421198
 GameObject:
   m_ObjectHideFlags: 0
@@ -31171,6 +31397,23 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -9219147555825907903, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
+--- !u!114 &1925270550
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1925270546}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  isBroken: 1
+  repairCost: 150
+  brokenSeatModel: {fileID: 0}
+  goodSeatModel: {fileID: 0}
+  repairPromptUI: {fileID: 0}
 --- !u!1 &1925720358
 GameObject:
   m_ObjectHideFlags: 0
@@ -33569,6 +33812,23 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -4331276723521888601, guid: d7941f2c4661a4c3b9e0bca6e69fd5a5, type: 3}
+--- !u!114 &2093046631
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2093046627}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  isBroken: 1
+  repairCost: 150
+  brokenSeatModel: {fileID: 0}
+  goodSeatModel: {fileID: 0}
+  repairPromptUI: {fileID: 0}
 --- !u!1 &2094116237
 GameObject:
   m_ObjectHideFlags: 0
@@ -34129,7 +34389,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!65 &2125065720
 BoxCollider:
   m_ObjectHideFlags: 0
