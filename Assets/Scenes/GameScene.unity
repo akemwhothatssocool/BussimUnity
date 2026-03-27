@@ -862,11 +862,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  isBroken: 1
-  repairCost: 150
-  brokenSeatModel: {fileID: 0}
-  goodSeatModel: {fileID: 0}
-  repairPromptUI: {fileID: 0}
+  currentState: 0
+  sellPrice: 20
+  brokenModel: {fileID: 0}
+  emptyModel: {fileID: 0}
+  goodModel: {fileID: 0}
 --- !u!1 &52975868
 GameObject:
   m_ObjectHideFlags: 0
@@ -969,6 +969,7 @@ GameObject:
   - component: {fileID: 56202934}
   - component: {fileID: 56202935}
   - component: {fileID: 56202936}
+  - component: {fileID: 56202937}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -1062,6 +1063,20 @@ MonoBehaviour:
   seatUpgradeCost: 300
   popularityBoost: 15
   txtSeatCost: {fileID: 851420711}
+--- !u!114 &56202937
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 56202932}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2fb9756498db4b346b561e5b3aad4422, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UpgradeShop
+  newSeatPrice: 150
+  txtShopFeedback: {fileID: 0}
 --- !u!1 &58264843 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: da00fbc1ea9914239800c49b09bc904e, type: 3}
@@ -2506,11 +2521,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  isBroken: 1
-  repairCost: 150
-  brokenSeatModel: {fileID: 0}
-  goodSeatModel: {fileID: 0}
-  repairPromptUI: {fileID: 0}
+  currentState: 0
+  sellPrice: 20
+  brokenModel: {fileID: 0}
+  emptyModel: {fileID: 0}
+  goodModel: {fileID: 0}
 --- !u!1 &143305295
 GameObject:
   m_ObjectHideFlags: 0
@@ -8495,11 +8510,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  isBroken: 1
-  repairCost: 150
-  brokenSeatModel: {fileID: 0}
-  goodSeatModel: {fileID: 0}
-  repairPromptUI: {fileID: 0}
+  currentState: 0
+  sellPrice: 20
+  brokenModel: {fileID: 0}
+  emptyModel: {fileID: 0}
+  goodModel: {fileID: 0}
 --- !u!1 &490413919
 GameObject:
   m_ObjectHideFlags: 0
@@ -14146,11 +14161,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  isBroken: 1
-  repairCost: 150
-  brokenSeatModel: {fileID: 0}
-  goodSeatModel: {fileID: 0}
-  repairPromptUI: {fileID: 0}
+  currentState: 0
+  sellPrice: 20
+  brokenModel: {fileID: 0}
+  emptyModel: {fileID: 0}
+  goodModel: {fileID: 0}
 --- !u!1 &808131447
 GameObject:
   m_ObjectHideFlags: 0
@@ -17586,11 +17601,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  isBroken: 1
-  repairCost: 150
-  brokenSeatModel: {fileID: 0}
-  goodSeatModel: {fileID: 0}
-  repairPromptUI: {fileID: 0}
+  currentState: 0
+  sellPrice: 20
+  brokenModel: {fileID: 0}
+  emptyModel: {fileID: 0}
+  goodModel: {fileID: 0}
 --- !u!1 &1010052617
 GameObject:
   m_ObjectHideFlags: 0
@@ -19216,7 +19231,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1159092457}
   m_Layer: 5
-  m_Name: ByPanel
+  m_Name: BuyPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -20517,11 +20532,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  isBroken: 1
-  repairCost: 150
-  brokenSeatModel: {fileID: 0}
-  goodSeatModel: {fileID: 0}
-  repairPromptUI: {fileID: 0}
+  currentState: 0
+  sellPrice: 20
+  brokenModel: {fileID: 0}
+  emptyModel: {fileID: 0}
+  goodModel: {fileID: 0}
 --- !u!1 &1233680276
 GameObject:
   m_ObjectHideFlags: 0
@@ -22318,11 +22333,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  isBroken: 1
-  repairCost: 150
-  brokenSeatModel: {fileID: 0}
-  goodSeatModel: {fileID: 0}
-  repairPromptUI: {fileID: 0}
+  currentState: 0
+  sellPrice: 20
+  brokenModel: {fileID: 0}
+  emptyModel: {fileID: 0}
+  goodModel: {fileID: 0}
 --- !u!1 &1332216275
 GameObject:
   m_ObjectHideFlags: 0
@@ -28511,11 +28526,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  isBroken: 1
-  repairCost: 150
-  brokenSeatModel: {fileID: 0}
-  goodSeatModel: {fileID: 0}
-  repairPromptUI: {fileID: 0}
+  currentState: 0
+  sellPrice: 20
+  brokenModel: {fileID: 0}
+  emptyModel: {fileID: 0}
+  goodModel: {fileID: 0}
 --- !u!1 &1716805148
 GameObject:
   m_ObjectHideFlags: 0
@@ -28845,11 +28860,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  isBroken: 1
-  repairCost: 150
-  brokenSeatModel: {fileID: 0}
-  goodSeatModel: {fileID: 0}
-  repairPromptUI: {fileID: 0}
+  currentState: 0
+  sellPrice: 20
+  brokenModel: {fileID: 0}
+  emptyModel: {fileID: 0}
+  goodModel: {fileID: 0}
 --- !u!1 &1737606448
 GameObject:
   m_ObjectHideFlags: 0
@@ -29446,11 +29461,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  isBroken: 1
-  repairCost: 150
-  brokenSeatModel: {fileID: 0}
-  goodSeatModel: {fileID: 0}
-  repairPromptUI: {fileID: 0}
+  currentState: 0
+  sellPrice: 20
+  brokenModel: {fileID: 0}
+  emptyModel: {fileID: 0}
+  goodModel: {fileID: 0}
 --- !u!1 &1798988403
 GameObject:
   m_ObjectHideFlags: 0
@@ -29962,7 +29977,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1835047606
 RectTransform:
   m_ObjectHideFlags: 0
@@ -30156,7 +30171,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1837444074
 RectTransform:
   m_ObjectHideFlags: 0
@@ -30832,11 +30847,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  isBroken: 1
-  repairCost: 150
-  brokenSeatModel: {fileID: 0}
-  goodSeatModel: {fileID: 0}
-  repairPromptUI: {fileID: 0}
+  currentState: 0
+  sellPrice: 20
+  brokenModel: {fileID: 0}
+  emptyModel: {fileID: 0}
+  goodModel: {fileID: 0}
 --- !u!1 &1883421198
 GameObject:
   m_ObjectHideFlags: 0
@@ -31410,11 +31425,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  isBroken: 1
-  repairCost: 150
-  brokenSeatModel: {fileID: 0}
-  goodSeatModel: {fileID: 0}
-  repairPromptUI: {fileID: 0}
+  currentState: 0
+  sellPrice: 20
+  brokenModel: {fileID: 0}
+  emptyModel: {fileID: 0}
+  goodModel: {fileID: 0}
 --- !u!1 &1925720358
 GameObject:
   m_ObjectHideFlags: 0
@@ -33825,11 +33840,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e77d9aa9549614dfbb6cad33714cbbc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  isBroken: 1
-  repairCost: 150
-  brokenSeatModel: {fileID: 0}
-  goodSeatModel: {fileID: 0}
-  repairPromptUI: {fileID: 0}
+  currentState: 0
+  sellPrice: 20
+  brokenModel: {fileID: 0}
+  emptyModel: {fileID: 0}
+  goodModel: {fileID: 0}
 --- !u!1 &2094116237
 GameObject:
   m_ObjectHideFlags: 0
