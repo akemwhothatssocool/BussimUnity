@@ -58,6 +58,16 @@ public class UpgradeManager : MonoBehaviour
         if (txtSeatCost) txtSeatCost.text = $"{seatUpgradeCost}";
     }
 
+    public void ApplySaveData(GameSaveData data)
+    {
+        if (data == null) return;
+
+        engineUpgradeCost = data.engineUpgradeCost;
+        fuelUpgradeCost = data.fuelUpgradeCost;
+        seatUpgradeCost = data.seatUpgradeCost;
+        UpdateUI();
+    }
+
     // ==========================================
     // 1. ปุ่มซื้อเครื่องยนต์ (เพิ่มความเร็ว)
     // ==========================================
@@ -73,6 +83,7 @@ public class UpgradeManager : MonoBehaviour
 
             engineUpgradeCost += 500;
             UpdateUI();
+            SaveSystem.SaveCurrentGame();
         }
     }
 
@@ -92,6 +103,7 @@ public class UpgradeManager : MonoBehaviour
             fuelUpgradeCost += 500;
             UpdateUI();
             Debug.Log("อัปเกรดถังน้ำมันสำเร็จ! ค่าน้ำมันถูกลงแล้ว");
+            SaveSystem.SaveCurrentGame();
         }
     }
 
@@ -119,6 +131,7 @@ public class UpgradeManager : MonoBehaviour
             seatUpgradeCost += 500;
             UpdateUI();
             Debug.Log($"อัปเกรดเบาะสำเร็จ! ได้โบนัสถาวร +{popularityBoost}%");
+            SaveSystem.SaveCurrentGame();
         }
     }
 }

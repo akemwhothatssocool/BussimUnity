@@ -164,8 +164,8 @@ public class FareSystem : MonoBehaviour
         passenger.targetStop = currentStop + travelStops;
         // ==================================================
 
-        // สุ่มแบงก์/เหรียญที่ NPC จะจ่าย ตามราคาใหม่ที่คำนวณได้
-        npcPlannedPayment = GenerateRealisticPayment(currentTicket.price);
+        // สุ่มแบงก์/เหรียญที่ NPC จะจ่าย โดยต้องเป็นยอดที่ผู้เล่นทอนได้จริง
+        npcPlannedPayment = GenerateRealisticPayment(currentTicket.price, GetAvailableWalletMoney());
 
         moneyReceived = 0;
         currentChange = 0;
@@ -199,6 +199,18 @@ public class FareSystem : MonoBehaviour
     public void AddChange(int amount)
     {
         if (!isTransactionActive) return;
+
+        int availableWallet = GetAvailableWalletMoney();
+        if (currentChange + amount > availableWallet)
+        {
+            if (textStatus != null)
+            {
+                textStatus.text = "เงินทอนเกินเงินที่มี!";
+                textStatus.color = Color.red;
+            }
+            return;
+        }
+
         currentChange += amount;
         PlayMoneySound(amount);
         UpdateUI();
@@ -229,6 +241,8 @@ IEnumerator ShowResultAndClose(int diff)
 {
     isProcessingSubmit = true; // 🔒 ล็อกการกดยืนยันชั่วคราว
 
+    int correctChange = moneyReceived - currentTicket.price;
+
     if (moneyReceived == 0)
     {
         textStatus.text = "รับเงินก่อน!";
@@ -243,6 +257,17 @@ IEnumerator ShowResultAndClose(int diff)
         textStatus.text = "เงินไม่พอ!";
         yield return new WaitForSeconds(1.2f);
         isProcessingSubmit = false; // 🔓 ปลดล็อกให้รับเงินเพิ่มได้
+    }
+    else if (correctChange > GetAvailableWalletMoney())
+    {
+        if (GameManager.Instance != null) GameManager.Instance.AdjustPopularity(-2f);
+
+        textStatus.text = "เงินทอนไม่พอ ขอแบงก์ย่อย!";
+        textStatus.color = Color.red;
+        yield return new WaitForSeconds(1.5f);
+
+        RequestSmallerPayment();
+        isProcessingSubmit = false;
     }
     else if (diff == 0)
     {
@@ -319,6 +344,7 @@ IEnumerator ShowResultAndClose(int diff)
         if (textPrice != null) textPrice.text = currentTicket.price + " ฿";
         if (textReceived != null) textReceived.text = moneyReceived + " ฿";
         if (textChange != null) textChange.text = currentChange + " ฿";
+        UpdateTransactionHelperText();
     }
 
     void ResetTextDisplay()
@@ -330,6 +356,48 @@ IEnumerator ShowResultAndClose(int diff)
     }
 
     void TogglePaymentUI(bool v) { if (paymentUIElements != null) foreach (var ui in paymentUIElements) if (ui != null) ui.SetActive(v); }
+
+    int GetAvailableWalletMoney()
+    {
+        return PlayerWallet.Instance != null ? Mathf.Max(0, PlayerWallet.Instance.currentMoney) : 0;
+    }
+
+    void UpdateTransactionHelperText()
+    {
+        if (textStatus == null || !isTransactionActive || isProcessingSubmit) return;
+
+        int availableWallet = GetAvailableWalletMoney();
+        int remainingAfterSelection = Mathf.Max(0, availableWallet - currentChange);
+        textStatus.text = $"เงินสดสำหรับทอน: {availableWallet} ฿ | เหลือหลังเลือก: {remainingAfterSelection} ฿";
+        textStatus.color = Color.white;
+    }
+
+    Transform GetCurrentMoneyHand()
+    {
+        if (currentPassenger == null) return null;
+
+        if (!currentPassenger.isSittingSeat) return currentPassenger.GetHandPosition();
+        if (!currentPassenger.isRightSide) return handPosSitL != null ? handPosSitL : currentPassenger.GetHandPosition();
+        return handPosSitR != null ? handPosSitR : currentPassenger.GetHandPosition();
+    }
+
+    void RequestSmallerPayment()
+    {
+        moneyReceived = 0;
+        currentChange = 0;
+        isTransactionActive = false;
+        waitingForCollection = true;
+
+        TogglePaymentUI(false);
+        ResetTextDisplay();
+
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
+
+        npcPlannedPayment = GenerateRealisticPayment(currentTicket.price, GetAvailableWalletMoney());
+        Transform hand = GetCurrentMoneyHand();
+        if (hand != null) StartCoroutine(SpawnOnlyRoutine(hand));
+    }
 
     public void AnimateHand(bool show)
     {
@@ -359,8 +427,16 @@ IEnumerator ShowResultAndClose(int diff)
     }
 
     // 🌟 ฟังก์ชันใหม่: สุ่มเงินจ่ายแบบอิงความน่าจะเป็น (Weighted Random)
-    int GenerateRealisticPayment(int price)
+    int GenerateRealisticPayment(int price, int availableChange)
     {
+        int maxPayableAmount = price + Mathf.Max(0, availableChange);
+
+        // ถ้าทอนได้น้อยมาก บังคับให้จ่ายพอดีเพื่อไม่ให้เกมค้าง
+        if (maxPayableAmount <= price)
+        {
+            return price;
+        }
+
         // สุ่มตัวเลข 1-100 เพื่อเช็กดวงของผู้โดยสารคนนี้
         int chance = Random.Range(1, 101);
 
@@ -370,29 +446,46 @@ IEnumerator ShowResultAndClose(int diff)
             return price;
         }
         // โอกาส 35% จ่ายแบงก์ 20 (ถ้าค่าตั๋วไม่เกิน 20)
-        else if (chance <= 75 && price <= 20)
+        else if (chance <= 75 && price <= 20 && 20 <= maxPayableAmount)
         {
             return 20;
         }
         // โอกาส 15% จ่ายแบงก์ 50 (ถ้าค่าตั๋วไม่เกิน 50)
-        else if (chance <= 90 && price <= 50)
+        else if (chance <= 90 && price <= 50 && 50 <= maxPayableAmount)
         {
             return 50;
         }
         // โอกาส 7% จ่ายแบงก์ 100
-        else if (chance <= 97 && price <= 100)
+        else if (chance <= 97 && price <= 100 && 100 <= maxPayableAmount)
         {
             return 100;
         }
         // โอกาส 2% จ่ายแบงก์ 500
-        else if (chance <= 99)
+        else if (chance <= 99 && 500 <= maxPayableAmount)
         {
             return 500;
         }
         // โอกาส 1% แจ็กพอต จ่ายแบงก์ 1000 (ผู้โดยสารรวยจัด)
-        else
+        else if (1000 <= maxPayableAmount)
         {
             return 1000;
+        }
+        // ถ้าแบงก์ใหญ๋เกินกว่าที่ผู้เล่นจะทอนได้ ให้ไล่ลงมาที่ยอดที่ปลอดภัยที่สุด
+        else if (100 <= maxPayableAmount)
+        {
+            return 100;
+        }
+        else if (50 <= maxPayableAmount)
+        {
+            return 50;
+        }
+        else if (20 <= maxPayableAmount)
+        {
+            return 20;
+        }
+        else
+        {
+            return price;
         }
     }
 }
