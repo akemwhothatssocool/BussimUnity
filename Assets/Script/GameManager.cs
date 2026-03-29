@@ -260,6 +260,8 @@ public class GameManager : MonoBehaviour
         if (UpgradeManager.Instance != null)
             UpgradeManager.Instance.ApplySaveData(data);
 
+        BusSeat.ApplySavedSeats(data.seatStates);
+
         if (busRateDisplay != null)
         {
             float finalPopularity = Mathf.Clamp(popularity + permanentPopularityBonus, 0f, 100f);

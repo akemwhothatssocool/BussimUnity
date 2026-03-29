@@ -60,6 +60,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
     public Transform exitPoint;
     public bool isSittingSeat = false;
     public bool isRightSide = false;
+    private BusSeat assignedSeat;
 
     [Header("ระบบรถ/เงิน")]
     public CityManager cityManager;
@@ -139,7 +140,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
             currentState == State.Paying ||
             currentState == State.HandExtended)
         {
-            currentWaitTime += Time.deltaTime;
+            currentWaitTime += Time.deltaTime * GetPatienceDecayMultiplier();
             if (currentWaitTime >= timeToAngry)      SetMood(Mood.Angry);
             else if (currentWaitTime >= timeToNeutral) SetMood(Mood.Neutral);
             else                                       SetMood(Mood.Happy);
@@ -416,5 +417,16 @@ public class PassengerAI : MonoBehaviour, IInteractable
     {
         mySeatPoint = seatPoint;
         isRightSide = seatPoint.name.Contains("Sit_R") || seatPoint.name.Contains("_R");
+        assignedSeat = BusSeat.ResolveSeatForPoint(seatPoint);
+    }
+
+    public int GetSeatTipBonus()
+    {
+        return assignedSeat != null ? assignedSeat.GetTipBonus() : 0;
+    }
+
+    float GetPatienceDecayMultiplier()
+    {
+        return assignedSeat != null ? assignedSeat.GetPatienceDecayMultiplier() : 1f;
     }
 }

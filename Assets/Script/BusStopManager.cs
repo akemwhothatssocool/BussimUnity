@@ -194,7 +194,14 @@ public class BusStopManager : MonoBehaviour
 
         foreach (Transform t in seatPoints)
         {
-            if (t != null && !occupiedSeats.Contains(t))
+            if (t == null || occupiedSeats.Contains(t))
+                continue;
+
+            BusSeat seatData = BusSeat.ResolveSeatForPoint(t);
+            if (seatData != null && !seatData.IsUsableForPassengers())
+                continue;
+
+            if (!occupiedSeats.Contains(t))
             {
                 available.Add(t);
             }

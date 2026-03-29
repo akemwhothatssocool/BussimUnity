@@ -303,8 +303,11 @@ IEnumerator ShowResultAndClose(int diff)
     void CloseTransaction()
     {
         int profit = moneyReceived - currentChange;
-        if (PlayerWallet.Instance != null) PlayerWallet.Instance.AddMoney(profit);
-        if (GameManager.Instance != null) GameManager.Instance.AddDailyIncome(profit);
+        int tipBonus = currentPassenger != null ? currentPassenger.GetSeatTipBonus() : 0;
+        int totalIncome = profit + tipBonus;
+
+        if (PlayerWallet.Instance != null) PlayerWallet.Instance.AddMoney(totalIncome);
+        if (GameManager.Instance != null) GameManager.Instance.AddDailyIncome(totalIncome);
 
         // 🌟 1. อัปเดตสถานะ NPC และสั่งให้รู้ว่าจ่ายเงินเสร็จแล้ว
         if (currentPassenger != null)
