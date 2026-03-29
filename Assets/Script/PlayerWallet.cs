@@ -4,6 +4,7 @@ using TMPro;
 public class PlayerWallet : MonoBehaviour
 {
     public static PlayerWallet Instance; // ✅ Singleton เรียกได้จากทุกที่
+    private const string PlayerMoneyKey = "PlayerMoney";
 
     [Header("ตั้งค่าเงินเริ่มต้น")]
     public int startingMoney = 100;
@@ -22,7 +23,7 @@ public class PlayerWallet : MonoBehaviour
 
     void Start()
     {
-        currentMoney = startingMoney;
+        currentMoney = PlayerPrefs.GetInt(PlayerMoneyKey, startingMoney);
         UpdateHUD();
     }
 
@@ -30,6 +31,7 @@ public class PlayerWallet : MonoBehaviour
     public void AddMoney(int amount)
     {
         currentMoney += amount;
+        SaveMoney();
         UpdateHUD();
         Debug.Log($"รับเงิน +{amount} ฿ | รวม: {currentMoney} ฿");
     }
@@ -43,6 +45,7 @@ public class PlayerWallet : MonoBehaviour
             return false;
         }
         currentMoney -= amount;
+        SaveMoney();
         UpdateHUD();
         Debug.Log($"จ่ายเงิน -{amount} ฿ | รวม: {currentMoney} ฿");
         return true;
@@ -50,9 +53,28 @@ public class PlayerWallet : MonoBehaviour
 
     public int GetMoney() => currentMoney;
 
+    public void SetMoney(int amount, bool saveImmediately = true)
+    {
+        currentMoney = Mathf.Max(0, amount);
+
+        if (saveImmediately)
+            SaveMoney();
+
+        UpdateHUD();
+    }
+
     void UpdateHUD()
     {
         if (textWalletHUD != null)
             textWalletHUD.text = currentMoney.ToString() + " ฿";
+    }
+
+    void SaveMoney()
+    {
+        PlayerPrefs.SetInt(PlayerMoneyKey, currentMoney);
+        PlayerPrefs.Save();
+
+        if (GameManager.Instance != null)
+            SaveSystem.SaveCurrentGame();
     }
 }

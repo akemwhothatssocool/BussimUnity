@@ -119,6 +119,9 @@ public class BusStopManager : MonoBehaviour
             ai.exitPoint = exitPoint;
             ai.isSittingSeat = isSitting;
 
+            if (GameManager.Instance != null)
+                GameManager.Instance.AddPassenger();
+
             if (isSitting)
             {
                 occupiedSeats.Add(targetPoint);

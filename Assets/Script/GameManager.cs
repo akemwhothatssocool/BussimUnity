@@ -57,11 +57,40 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         if (summaryPanel != null) summaryPanel.SetActive(false);
+        StartCoroutine(InitializeGameState());
     }
 
-    public void AddPassenger() { dailyPassengers++; }
-    public void AddMissedPassenger() { dailyMissed++; }
-    public void AddDailyIncome(int amount) { dailyIncome += amount; }
+    IEnumerator InitializeGameState()
+    {
+        yield return null;
+
+        if (SaveSystem.ShouldLoadOnSceneEnter() && SaveSystem.TryLoad(out GameSaveData saveData))
+        {
+            ApplySaveData(saveData);
+        }
+        else
+        {
+            SaveSystem.SaveCurrentGame();
+        }
+    }
+
+    public void AddPassenger()
+    {
+        dailyPassengers++;
+        SaveSystem.SaveCurrentGame();
+    }
+
+    public void AddMissedPassenger()
+    {
+        dailyMissed++;
+        SaveSystem.SaveCurrentGame();
+    }
+
+    public void AddDailyIncome(int amount)
+    {
+        dailyIncome += amount;
+        SaveSystem.SaveCurrentGame();
+    }
 
     public void AddStop()
     {
@@ -74,12 +103,17 @@ public class GameManager : MonoBehaviour
         {
             EndDay();
         }
+        else
+        {
+            SaveSystem.SaveCurrentGame();
+        }
     }
 
     public void AdjustPopularity(float amount)
     {
         dailyPopularityGain += amount;
         popularity = Mathf.Clamp(popularity + amount, 0f, 100f);
+        SaveSystem.SaveCurrentGame();
     }
 
     // ==========================================
@@ -136,6 +170,8 @@ public class GameManager : MonoBehaviour
         }
 
         if (summaryPanel != null) summaryPanel.SetActive(true);
+
+        SaveSystem.SaveCurrentGame();
     }
 
     // ==========================================
@@ -166,6 +202,7 @@ public class GameManager : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
 
         Debug.Log("เริ่มวันใหม่! ลุยเก็บเงินสร้างตัว!");
+        SaveSystem.SaveCurrentGame();
     }
 
     public void OpenUpgradeMenu()
@@ -178,6 +215,55 @@ public class GameManager : MonoBehaviour
 
     public void ReturnToMainMenu()
     {
-        Debug.Log("กลับหน้าเมนูหลัก!");
+        SaveSystem.SaveCurrentGame();
+        Time.timeScale = 1f;
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+        UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
+    }
+
+    void OnApplicationQuit()
+    {
+        SaveSystem.SaveCurrentGame();
+    }
+
+    void OnApplicationPause(bool pauseStatus)
+    {
+        if (pauseStatus)
+            SaveSystem.SaveCurrentGame();
+    }
+
+    void OnApplicationFocus(bool hasFocus)
+    {
+        if (!hasFocus)
+            SaveSystem.SaveCurrentGame();
+    }
+
+    void ApplySaveData(GameSaveData data)
+    {
+        currentDay = data.currentDay;
+        stopsReached = data.stopsReached;
+        stopsPerDay = data.stopsPerDay;
+        dailyPassengers = data.dailyPassengers;
+        dailyMissed = data.dailyMissed;
+        dailyIncome = data.dailyIncome;
+        dailyGasCost = data.dailyGasCost;
+        dailyRepairCost = data.dailyRepairCost;
+        engineSpeedBonus = data.engineSpeedBonus;
+        permanentPopularityBonus = data.permanentPopularityBonus;
+        popularity = data.popularity;
+        dailyPopularityGain = data.dailyPopularityGain;
+
+        if (PlayerWallet.Instance != null)
+            PlayerWallet.Instance.SetMoney(data.playerMoney, false);
+
+        if (UpgradeManager.Instance != null)
+            UpgradeManager.Instance.ApplySaveData(data);
+
+        if (busRateDisplay != null)
+        {
+            float finalPopularity = Mathf.Clamp(popularity + permanentPopularityBonus, 0f, 100f);
+            busRateDisplay.UpdateBusRate(finalPopularity / 20f);
+        }
     }
 }

@@ -346,7 +346,10 @@ public class PassengerAI : MonoBehaviour, IInteractable
             Debug.Log($"{gameObject.name}: หวานเจี๊ยบ นั่งฟรีโว้ย! (ผู้โดยสารเนียนลงรถฟรี)");
 
             if (GameManager.Instance != null)
+            {
+                GameManager.Instance.AddMissedPassenger();
                 GameManager.Instance.AdjustPopularity(-5f);
+            }
 
             // ✅ แก้บั๊ก 3: ซ่อน moneyProp ก่อนลงรถ ไม่งั้น prop ลอยค้าง
             if (moneyProp != null) moneyProp.SetActive(false);
