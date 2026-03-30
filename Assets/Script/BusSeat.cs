@@ -420,9 +420,10 @@ public class BusSeat : MonoBehaviour, IInteractable
             SafeLocalSize(worldBounds.size.y, transform.lossyScale.y),
             SafeLocalSize(worldBounds.size.z, transform.lossyScale.z));
 
+        // FIX: ใช้ 0.5f แทน 0.1f เพื่อ snap ลงมาที่ขอบล่างของ bounding box (พื้นที่นั่งจริง)
         Vector3 localSnap = new Vector3(
             localCenter.x,
-            localCenter.y - (localSize.y * 0.1f),
+            localCenter.y - (localSize.y * 0.5f),
             localCenter.z) + passengerLocalOffset;
 
         Quaternion rotation = transform.rotation * Quaternion.Euler(passengerLocalEulerOffset);

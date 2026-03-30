@@ -11484,6 +11484,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   interactPromptUI: {fileID: 1161424857}
+  seatInstallAssistRange: 3.2
+  seatInstallAssistWidth: 0.95
   uiPanel: {fileID: 0}
   textPrice: {fileID: 0}
   npcAnimator: {fileID: 0}
@@ -14271,7 +14273,7 @@ MonoBehaviour:
   emptySeatInteractionCenter: {x: 0, y: 0.42, z: 0}
   emptySeatInteractionSize: {x: 0.85, y: 0.9, z: 0.85}
   autoAlignPassengerToVisual: 1
-  passengerLocalOffset: {x: 0, y: -0.08, z: -0.02}
+  passengerLocalOffset: {x: 0, y: 2.9, z: 1.22}
   passengerLocalEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!23 &686952494
 MeshRenderer:
@@ -16712,7 +16714,7 @@ MonoBehaviour:
   emptySeatInteractionCenter: {x: 0, y: 0.42, z: 0}
   emptySeatInteractionSize: {x: 0.85, y: 0.9, z: 0.85}
   autoAlignPassengerToVisual: 1
-  passengerLocalOffset: {x: 0, y: -0.08, z: -0.02}
+  passengerLocalOffset: {x: 0, y: 2.9, z: 1.22}
   passengerLocalEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!65 &798605530
 BoxCollider:
@@ -16897,7 +16899,7 @@ MonoBehaviour:
   emptySeatInteractionCenter: {x: 0, y: 0.42, z: 0}
   emptySeatInteractionSize: {x: 0.85, y: 0.9, z: 0.85}
   autoAlignPassengerToVisual: 1
-  passengerLocalOffset: {x: 0, y: -0.08, z: -0.02}
+  passengerLocalOffset: {x: 0, y: 2.9, z: 1.22}
   passengerLocalEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!65 &806938151
 BoxCollider:
@@ -17512,7 +17514,7 @@ MonoBehaviour:
   emptySeatInteractionCenter: {x: 0, y: 0.42, z: 0}
   emptySeatInteractionSize: {x: 0.85, y: 0.9, z: 0.85}
   autoAlignPassengerToVisual: 1
-  passengerLocalOffset: {x: 0, y: -0.08, z: -0.02}
+  passengerLocalOffset: {x: 0, y: 2.9, z: 1.22}
   passengerLocalEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!65 &842205395
 BoxCollider:
@@ -18520,7 +18522,7 @@ MonoBehaviour:
   emptySeatInteractionCenter: {x: 0, y: 0.42, z: 0}
   emptySeatInteractionSize: {x: 0.85, y: 0.9, z: 0.85}
   autoAlignPassengerToVisual: 1
-  passengerLocalOffset: {x: 0, y: -0.08, z: -0.02}
+  passengerLocalOffset: {x: 0, y: 2.9, z: 1.22}
   passengerLocalEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!65 &868689583
 BoxCollider:
@@ -19234,7 +19236,7 @@ MonoBehaviour:
   emptySeatInteractionCenter: {x: 0, y: 0.42, z: 0}
   emptySeatInteractionSize: {x: 0.85, y: 0.9, z: 0.85}
   autoAlignPassengerToVisual: 1
-  passengerLocalOffset: {x: 0, y: -0.08, z: -0.02}
+  passengerLocalOffset: {x: 0, y: 2.9, z: 1.22}
   passengerLocalEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!65 &912309820
 BoxCollider:
@@ -19787,7 +19789,7 @@ MonoBehaviour:
   emptySeatInteractionCenter: {x: 0, y: 0.42, z: 0}
   emptySeatInteractionSize: {x: 0.85, y: 0.9, z: 0.85}
   autoAlignPassengerToVisual: 1
-  passengerLocalOffset: {x: 0, y: -0.08, z: -0.02}
+  passengerLocalOffset: {x: 0, y: 2.9, z: 1.22}
   passengerLocalEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!65 &938014078
 BoxCollider:
@@ -21689,7 +21691,7 @@ MonoBehaviour:
   emptySeatInteractionCenter: {x: 0, y: 0.42, z: 0}
   emptySeatInteractionSize: {x: 0.85, y: 0.9, z: 0.85}
   autoAlignPassengerToVisual: 1
-  passengerLocalOffset: {x: 0, y: -0.08, z: -0.02}
+  passengerLocalOffset: {x: 0, y: 2.9, z: 1.22}
   passengerLocalEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!65 &1024489291
 BoxCollider:
@@ -22666,7 +22668,7 @@ MonoBehaviour:
   emptySeatInteractionCenter: {x: 0, y: 0.42, z: 0}
   emptySeatInteractionSize: {x: 0.85, y: 0.9, z: 0.85}
   autoAlignPassengerToVisual: 1
-  passengerLocalOffset: {x: 0, y: -0.08, z: -0.02}
+  passengerLocalOffset: {x: 0, y: 2.9, z: 1.22}
   passengerLocalEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!65 &1068962037
 BoxCollider:
@@ -23399,7 +23401,7 @@ MonoBehaviour:
   emptySeatInteractionCenter: {x: 0, y: 0.42, z: 0}
   emptySeatInteractionSize: {x: 0.85, y: 0.9, z: 0.85}
   autoAlignPassengerToVisual: 1
-  passengerLocalOffset: {x: 0, y: -0.08, z: -0.02}
+  passengerLocalOffset: {x: 0, y: 2.9, z: 1.22}
   passengerLocalEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!65 &1115685047
 BoxCollider:
@@ -24570,7 +24572,7 @@ MonoBehaviour:
   emptySeatInteractionCenter: {x: 0, y: 0.42, z: 0}
   emptySeatInteractionSize: {x: 0.85, y: 0.9, z: 0.85}
   autoAlignPassengerToVisual: 1
-  passengerLocalOffset: {x: 0, y: -0.08, z: -0.02}
+  passengerLocalOffset: {x: 0, y: 2.9, z: 1.22}
   passengerLocalEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!65 &1164824494
 BoxCollider:
@@ -26318,7 +26320,7 @@ MonoBehaviour:
   emptySeatInteractionCenter: {x: 0, y: 0.42, z: 0}
   emptySeatInteractionSize: {x: 0.85, y: 0.9, z: 0.85}
   autoAlignPassengerToVisual: 1
-  passengerLocalOffset: {x: 0, y: -0.08, z: -0.02}
+  passengerLocalOffset: {x: 0, y: 2.9, z: 1.22}
   passengerLocalEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!65 &1259762290
 BoxCollider:
@@ -26671,7 +26673,7 @@ MonoBehaviour:
   emptySeatInteractionCenter: {x: 0, y: 0.42, z: 0}
   emptySeatInteractionSize: {x: 0.85, y: 0.9, z: 0.85}
   autoAlignPassengerToVisual: 1
-  passengerLocalOffset: {x: 0, y: -0.08, z: -0.02}
+  passengerLocalOffset: {x: 0, y: 2.9, z: 1.22}
   passengerLocalEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!65 &1270779455
 BoxCollider:
@@ -29930,7 +29932,7 @@ MonoBehaviour:
   emptySeatInteractionCenter: {x: 0, y: 0.42, z: 0}
   emptySeatInteractionSize: {x: 0.85, y: 0.9, z: 0.85}
   autoAlignPassengerToVisual: 1
-  passengerLocalOffset: {x: 0, y: -0.08, z: -0.02}
+  passengerLocalOffset: {x: 0, y: 2.9, z: 1.22}
   passengerLocalEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!65 &1462705448
 BoxCollider:
@@ -34850,7 +34852,7 @@ MonoBehaviour:
   emptySeatInteractionCenter: {x: 0, y: 0.42, z: 0}
   emptySeatInteractionSize: {x: 0.85, y: 0.9, z: 0.85}
   autoAlignPassengerToVisual: 1
-  passengerLocalOffset: {x: 0, y: -0.08, z: -0.02}
+  passengerLocalOffset: {x: 0, y: 2.9, z: 1.22}
   passengerLocalEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!65 &1691828637
 BoxCollider:
@@ -39735,7 +39737,7 @@ MonoBehaviour:
   emptySeatInteractionCenter: {x: 0, y: 0.42, z: 0}
   emptySeatInteractionSize: {x: 0.85, y: 0.9, z: 0.85}
   autoAlignPassengerToVisual: 1
-  passengerLocalOffset: {x: 0, y: -0.08, z: -0.02}
+  passengerLocalOffset: {x: 0, y: 2.9, z: 1.22}
   passengerLocalEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!114 &1999000004
 MonoBehaviour:
@@ -41308,7 +41310,7 @@ MonoBehaviour:
   emptySeatInteractionCenter: {x: 0, y: 0.42, z: 0}
   emptySeatInteractionSize: {x: 0.85, y: 0.9, z: 0.85}
   autoAlignPassengerToVisual: 1
-  passengerLocalOffset: {x: 0, y: -0.08, z: -0.02}
+  passengerLocalOffset: {x: 0, y: 2.9, z: 1.22}
   passengerLocalEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!65 &2081744378
 BoxCollider:
@@ -42309,7 +42311,7 @@ MonoBehaviour:
   emptySeatInteractionCenter: {x: 0, y: 0.42, z: 0}
   emptySeatInteractionSize: {x: 0.85, y: 0.9, z: 0.85}
   autoAlignPassengerToVisual: 1
-  passengerLocalOffset: {x: 0, y: -0.08, z: -0.02}
+  passengerLocalOffset: {x: 0, y: 2.9, z: 1.22}
   passengerLocalEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!65 &2112887399
 BoxCollider:
