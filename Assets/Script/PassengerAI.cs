@@ -91,17 +91,22 @@ public class PassengerAI : MonoBehaviour, IInteractable
 
     [Header("Random Event Animation")]
     public Animator randomEventAnimator;
+    public string drunkDanceStateName = "Base Layer.Dancing1";
     public string drunkDanceBoolName = "isDrunkDancing";
     public string drunkDanceTriggerName = "trigDrunkDance";
     public string drunkDanceStopTriggerName = "trigStopDrunkDance";
+    public string standingRecoveryStateName = "Base Layer.Idle";
+    public string sittingRecoveryStateName = "Base Layer.Sitting Idle";
     public string loudPhoneBoolName = "isTalkingLoudPhone";
     public string loudPhoneTriggerName = "trigLoudPhone";
     public string loudPhoneStopTriggerName = "trigStopLoudPhone";
+    [SerializeField] float randomEventStateCrossFadeDuration = 0.15f;
 
     private bool isProcessingPayment = false;
     private Vector3 seatedBasePosition;
     private Quaternion seatedBaseRotation;
     private bool hasSeatedBasePose = false;
+    private bool isUsingDirectDrunkDanceState = false;
 
     // ===============================
     void Start()
@@ -663,8 +668,12 @@ public class PassengerAI : MonoBehaviour, IInteractable
         switch (activeRandomEvent)
         {
             case RandomEventType.DrunkDance:
-                SetAnimatorBoolIfExists(targetAnimator, drunkDanceBoolName, true);
-                SetAnimatorTriggerIfExists(targetAnimator, drunkDanceTriggerName);
+                bool handledDrunkDanceByParameters =
+                    SetAnimatorBoolIfExists(targetAnimator, drunkDanceBoolName, true) |
+                    SetAnimatorTriggerIfExists(targetAnimator, drunkDanceTriggerName);
+
+                isUsingDirectDrunkDanceState = !handledDrunkDanceByParameters &&
+                    TryCrossFadeToAnimatorState(targetAnimator, drunkDanceStateName);
                 break;
 
             case RandomEventType.LoudPhone:
@@ -683,8 +692,14 @@ public class PassengerAI : MonoBehaviour, IInteractable
         switch (activeRandomEvent)
         {
             case RandomEventType.DrunkDance:
-                SetAnimatorBoolIfExists(targetAnimator, drunkDanceBoolName, false);
-                SetAnimatorTriggerIfExists(targetAnimator, drunkDanceStopTriggerName);
+                bool handledDrunkDanceByParameters =
+                    SetAnimatorBoolIfExists(targetAnimator, drunkDanceBoolName, false) |
+                    SetAnimatorTriggerIfExists(targetAnimator, drunkDanceStopTriggerName);
+
+                if (isUsingDirectDrunkDanceState || !handledDrunkDanceByParameters)
+                    TryCrossFadeToAnimatorState(targetAnimator, GetRandomEventRecoveryStateName());
+
+                isUsingDirectDrunkDanceState = false;
                 break;
 
             case RandomEventType.LoudPhone:
@@ -694,20 +709,55 @@ public class PassengerAI : MonoBehaviour, IInteractable
         }
     }
 
-    void SetAnimatorBoolIfExists(Animator targetAnimator, string parameterName, bool value)
+    string GetRandomEventRecoveryStateName()
     {
-        if (targetAnimator == null || string.IsNullOrWhiteSpace(parameterName) || !HasAnimatorParameter(targetAnimator, parameterName, AnimatorControllerParameterType.Bool))
-            return;
-
-        targetAnimator.SetBool(parameterName, value);
+        return isSittingSeat ? sittingRecoveryStateName : standingRecoveryStateName;
     }
 
-    void SetAnimatorTriggerIfExists(Animator targetAnimator, string parameterName)
+    bool TryCrossFadeToAnimatorState(Animator targetAnimator, string stateName)
+    {
+        if (targetAnimator == null || string.IsNullOrWhiteSpace(stateName))
+            return false;
+
+        int layerIndex = GetAnimatorLayerIndex(targetAnimator, stateName);
+        int stateHash = Animator.StringToHash(stateName);
+        if (!targetAnimator.HasState(layerIndex, stateHash))
+            return false;
+
+        targetAnimator.CrossFadeInFixedTime(stateHash, randomEventStateCrossFadeDuration, layerIndex);
+        return true;
+    }
+
+    int GetAnimatorLayerIndex(Animator targetAnimator, string stateName)
+    {
+        if (targetAnimator == null || string.IsNullOrWhiteSpace(stateName))
+            return 0;
+
+        int separatorIndex = stateName.IndexOf('.');
+        if (separatorIndex <= 0)
+            return 0;
+
+        string layerName = stateName.Substring(0, separatorIndex);
+        int layerIndex = targetAnimator.GetLayerIndex(layerName);
+        return layerIndex >= 0 ? layerIndex : 0;
+    }
+
+    bool SetAnimatorBoolIfExists(Animator targetAnimator, string parameterName, bool value)
+    {
+        if (targetAnimator == null || string.IsNullOrWhiteSpace(parameterName) || !HasAnimatorParameter(targetAnimator, parameterName, AnimatorControllerParameterType.Bool))
+            return false;
+
+        targetAnimator.SetBool(parameterName, value);
+        return true;
+    }
+
+    bool SetAnimatorTriggerIfExists(Animator targetAnimator, string parameterName)
     {
         if (targetAnimator == null || string.IsNullOrWhiteSpace(parameterName) || !HasAnimatorParameter(targetAnimator, parameterName, AnimatorControllerParameterType.Trigger))
-            return;
+            return false;
 
         targetAnimator.SetTrigger(parameterName);
+        return true;
     }
 
     bool HasAnimatorParameter(Animator targetAnimator, string parameterName, AnimatorControllerParameterType parameterType)
