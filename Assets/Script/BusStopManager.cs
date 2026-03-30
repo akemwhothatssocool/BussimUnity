@@ -29,6 +29,8 @@ public class BusStopManager : MonoBehaviour
 
     [Header("Spawn Spread")]
     public float spawnRadius = 1.5f;
+    public float minWaitSpacing = 0.8f;
+    public int maxSpawnPositionAttempts = 12;
 
     // ==========================
     // Internal Systems
@@ -47,6 +49,15 @@ public class BusStopManager : MonoBehaviour
     public void TriggerSpawn()
     {
         StartCoroutine(SpawnPassengersRoutine());
+    }
+
+    public void ResetForNextDay()
+    {
+        StopAllCoroutines();
+        passengerQueue.Clear();
+        occupiedSeats.Clear();
+        occupiedStandPoints.Clear();
+        isBoarding = false;
     }
 
     IEnumerator SpawnPassengersRoutine()
@@ -95,14 +106,7 @@ public class BusStopManager : MonoBehaviour
             return null;
         }
 
-        // ⭐ spawn กระจายตำแหน่ง
-        Vector2 randomCircle = Random.insideUnitCircle * spawnRadius;
-
-        Vector3 spawnPos = spawnPoint.position + new Vector3(
-            randomCircle.x,
-            0,
-            randomCircle.y
-        );
+        Vector3 spawnPos = GetAvailableWaitPosition();
 
         GameObject p = Instantiate(
             passengerPrefab,
@@ -141,7 +145,7 @@ public class BusStopManager : MonoBehaviour
                 };
             }
 
-            ai.WaitAtStop(spawnPoint);
+            ai.WaitAtStop(spawnPos, spawnPoint.rotation, spawnPoint);
         }
 
         return ai;
@@ -254,5 +258,58 @@ public class BusStopManager : MonoBehaviour
         {
             occupiedStandPoints.Remove(spot);
         }
+    }
+
+    Vector3 GetAvailableWaitPosition()
+    {
+        float spacing = Mathf.Max(0.2f, minWaitSpacing);
+        float spacingSqr = spacing * spacing;
+        List<Vector3> occupiedWaitPositions = GetCurrentWaitingPositions();
+
+        for (int attempt = 0; attempt < Mathf.Max(1, maxSpawnPositionAttempts); attempt++)
+        {
+            Vector2 randomCircle = Random.insideUnitCircle * spawnRadius;
+            Vector3 candidate = spawnPoint.position + new Vector3(randomCircle.x, 0f, randomCircle.y);
+
+            if (IsFarEnoughFromWaitingPassengers(candidate, occupiedWaitPositions, spacingSqr))
+                return candidate;
+        }
+
+        int fallbackIndex = occupiedWaitPositions.Count;
+        float angle = fallbackIndex * 137.5f * Mathf.Deg2Rad;
+        float distance = Mathf.Max(spacing, Mathf.Min(spawnRadius, spacing * (fallbackIndex + 1)));
+        Vector3 fallbackOffset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * distance;
+        return spawnPoint.position + fallbackOffset;
+    }
+
+    List<Vector3> GetCurrentWaitingPositions()
+    {
+        List<Vector3> result = new List<Vector3>();
+        PassengerAI[] waitingPassengers = Object.FindObjectsByType<PassengerAI>(FindObjectsSortMode.None);
+
+        foreach (PassengerAI passenger in waitingPassengers)
+        {
+            if (passenger == null || passenger.transform.parent != spawnPoint)
+                continue;
+
+            result.Add(passenger.transform.position);
+        }
+
+        return result;
+    }
+
+    bool IsFarEnoughFromWaitingPassengers(Vector3 candidate, List<Vector3> occupiedWaitPositions, float minDistanceSqr)
+    {
+        for (int i = 0; i < occupiedWaitPositions.Count; i++)
+        {
+            Vector3 delta = candidate - occupiedWaitPositions[i];
+            delta.y = 0f;
+
+            if (delta.sqrMagnitude < minDistanceSqr)
+                return false;
+        }
+
+        occupiedWaitPositions.Add(candidate);
+        return true;
     }
 }

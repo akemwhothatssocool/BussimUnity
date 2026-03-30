@@ -23,7 +23,7 @@ public class PlayerWallet : MonoBehaviour
 
     void Start()
     {
-        currentMoney = PlayerPrefs.GetInt(PlayerMoneyKey, startingMoney);
+        currentMoney = startingMoney;
         UpdateHUD();
     }
 
@@ -53,9 +53,14 @@ public class PlayerWallet : MonoBehaviour
 
     public int GetMoney() => currentMoney;
 
+    public void ResetToStartingMoney(bool saveImmediately = true)
+    {
+        SetMoney(startingMoney, saveImmediately);
+    }
+
     public void SetMoney(int amount, bool saveImmediately = true)
     {
-        currentMoney = Mathf.Max(0, amount);
+        currentMoney = amount;
 
         if (saveImmediately)
             SaveMoney();

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using TMPro;
 using UnityEngine;
 
@@ -15,49 +13,25 @@ public class UpgradeShop : MonoBehaviour
 
     public void BuySeat(int level)
     {
+        SeatDeliveryManager deliveryManager = SeatDeliveryManager.GetOrCreateInstance();
+        if (deliveryManager == null)
+        {
+            SetFeedback("<color=red>ระบบส่งเก้าอี้ยังไม่พร้อมใช้งาน</color>");
+            return;
+        }
+
         int cost = GetPriceForLevel(level);
-        if (cost <= 0)
+        if (deliveryManager.TryOrderSeatDelivery(level, cost, out string feedback))
         {
-            SetFeedback("<color=red>ระดับเก้าอี้ไม่ถูกต้อง</color>");
+            SetFeedback(feedback);
+
+            if (UpgradeManager.Instance != null)
+                UpgradeManager.Instance.CloseMenu();
+
             return;
         }
 
-        if (PlayerWallet.Instance == null)
-        {
-            SetFeedback("<color=red>ไม่พบกระเป๋าเงินผู้เล่น</color>");
-            return;
-        }
-
-        int currentMoney = PlayerWallet.Instance.GetMoney();
-        if (currentMoney < cost)
-        {
-            SetFeedback($"<color=red>เงินไม่พอ! ขาดอีก {cost - currentMoney} ฿</color>");
-            return;
-        }
-
-        BusSeat[] allSeats = Object.FindObjectsByType<BusSeat>(FindObjectsSortMode.None);
-        List<BusSeat> emptySeats = allSeats
-            .Where(seat => seat != null && seat.currentState == BusSeat.SeatState.Empty)
-            .OrderBy(seat => seat.GetSeatId())
-            .ToList();
-
-        if (emptySeats.Count == 0)
-        {
-            SetFeedback("<color=yellow>รถเต็มแล้ว! ต้องรื้อเบาะเก่าทิ้งก่อนถึงจะซื้อใหม่ได้</color>");
-            return;
-        }
-
-        PlayerWallet.Instance.AddMoney(-cost);
-        emptySeats[0].InstallNewSeat(level);
-
-        string bonusText = level switch
-        {
-            2 => " ได้ทิปเพิ่ม +2 บาทต่อคน",
-            3 => " ได้ทิปเพิ่ม +5 บาท และผู้โดยสารใจเย็นขึ้น",
-            _ => string.Empty
-        };
-
-        SetFeedback($"<color=green>ติดตั้งเก้าอี้ Lv.{level} สำเร็จ!{bonusText}</color>");
+        SetFeedback(feedback);
     }
 
     public void BuyNewSeat()
@@ -67,6 +41,7 @@ public class UpgradeShop : MonoBehaviour
 
     int GetPriceForLevel(int level)
     {
+        level = Mathf.Clamp(level, 1, BusSeat.MaxSupportedSeatLevel);
         return level switch
         {
             1 => priceLv1,

@@ -35,6 +35,8 @@ public class FareSystem : MonoBehaviour
     private int npcPlannedPayment = 0;
     private bool isProcessingSubmit = false;
 
+    public bool IsBusy => waitingForCollection || isTransactionActive || isProcessingSubmit;
+
     [Header("=== 5. ข้อมูล NPC & Player ===")]
     public PassengerAI currentPassenger;
     private int currentPoseState = 0;

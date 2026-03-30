@@ -21,6 +21,12 @@ public class GameSaveData
     public int engineUpgradeCost = 300;
     public int fuelUpgradeCost = 300;
     public int seatUpgradeCost = 300;
+    public bool hasPendingSeatDeliveryBox = false;
+    public int pendingSeatDeliveryLevel = 0;
+    public Vector3 pendingSeatDeliveryPosition = Vector3.zero;
+    public Vector3 pendingSeatDeliveryRotation = Vector3.zero;
+    public bool isCarryingSeatDelivery = false;
+    public int carriedSeatDeliveryLevel = 0;
     public SeatSaveData[] seatStates = Array.Empty<SeatSaveData>();
 }
 
@@ -113,6 +119,9 @@ public static class SaveSystem
             data.fuelUpgradeCost = UpgradeManager.Instance.fuelUpgradeCost;
             data.seatUpgradeCost = UpgradeManager.Instance.seatUpgradeCost;
         }
+
+        if (SeatDeliveryManager.Instance != null)
+            SeatDeliveryManager.Instance.CaptureSaveData(data);
 
         BusSeat[] seats = UnityEngine.Object.FindObjectsByType<BusSeat>(FindObjectsSortMode.None);
         data.seatStates = new SeatSaveData[seats.Length];

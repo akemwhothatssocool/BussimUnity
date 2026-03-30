@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+using System;
+using UnityEngine;
 
 public class BusPlayerController : MonoBehaviour
 {
@@ -23,6 +24,8 @@ public class BusPlayerController : MonoBehaviour
     public float interactRange = 2.0f;
     public LayerMask interactLayer;
     public InteractPromptUI interactPromptUI;
+    public float seatInstallAssistRange = 3.2f;
+    public float seatInstallAssistWidth = 0.95f;
 
     [Header("5. ระบบ Payment UI")]
     public GameObject uiPanel;
@@ -42,24 +45,30 @@ public class BusPlayerController : MonoBehaviour
     public float maxLeanAngle = 20f;
 
     [Header("8. ระบบฟิสิกส์ตอนลงรถ")]
-    public CityManager cityManager; // ✅ ประกาศแค่ครั้งเดียว
+    public CityManager cityManager;
     public bool isInsideBus = true;
     public Vector3 scrollDirection = new Vector3(-1, 0, 0);
 
-    // Private variables
-    private CharacterController controller; // ✅ ใช้ตัวเดียว ลบ cc ออก
-    private float lastBusSpeed;
-    private Vector3 inertiaVelocity;
-    private float xRotation = 0f;
-    private Vector3 velocity;
+    [Header("9. ระบบถือกล่อง")]
+    public Transform carryAnchor;
+    public Vector3 carriedItemLocalPosition = new Vector3(0.32f, -0.28f, 0.95f);
+    public Vector3 carriedItemLocalEuler = new Vector3(10f, -18f, 6f);
+
+    CharacterController controller;
+    float lastBusSpeed;
+    Vector3 inertiaVelocity;
+    float xRotation = 0f;
+    Vector3 velocity;
     public float currentStamina;
-    private float activeMoveSpeed;
-    private bool isTransactionActive = false;
-    private const float maxFallSpeed = -20f;
+    float activeMoveSpeed;
+    bool isTransactionActive = false;
+    const float maxFallSpeed = -20f;
+    SeatDeliveryCrate carriedSeatPackage;
 
     void Start()
     {
-        controller = GetComponent<CharacterController>(); // ✅ ดึงครั้งเดียว
+        controller = GetComponent<CharacterController>();
+        EnsureCarryAnchor();
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         currentStamina = maxStamina;
@@ -72,11 +81,11 @@ public class BusPlayerController : MonoBehaviour
     void Update()
     {
         if (Cursor.visible) return;
+
         HandleMouseLook();
         HandleMovement();
         HandleInteraction();
 
-        // 🌟 ถอยหลังตามฉาก ถ้าไม่ได้อยู่บนรถ!
         if (!isInsideBus && cityManager != null)
         {
             Vector3 pushMovement = scrollDirection * cityManager._currentSpeed * Time.deltaTime;
@@ -102,35 +111,28 @@ public class BusPlayerController : MonoBehaviour
         bool isMoving = direction.magnitude >= 0.1f;
         bool isShiftHold = Input.GetKey(KeyCode.LeftShift);
 
-        float targetSpeed;
+        float targetSpeed = walkSpeed;
         if (isShiftHold && isMoving)
-            targetSpeed = (currentStamina > 0) ? runSpeed : exhaustedSpeed;
-        else
-            targetSpeed = walkSpeed;
+            targetSpeed = currentStamina > 0 ? runSpeed : exhaustedSpeed;
 
         activeMoveSpeed = Mathf.Lerp(activeMoveSpeed, targetSpeed, acceleration * Time.deltaTime);
 
-        // คำนวณแรงเฉื่อย
         if (cityManager != null)
         {
             float currentBusSpeed = cityManager._currentSpeed;
             float deltaSpeed = currentBusSpeed - lastBusSpeed;
 
             if (Mathf.Abs(deltaSpeed) < 2f && Mathf.Abs(deltaSpeed) > 0.001f)
-            {
                 inertiaVelocity += Vector3.left * (deltaSpeed * inertiaMultiplier);
-            }
+
             lastBusSpeed = currentBusSpeed;
         }
 
         inertiaVelocity = Vector3.ClampMagnitude(inertiaVelocity, 5f);
 
-        // คำนวณการเอียงตัว
         if (cityManager != null)
         {
-            float leanAmount = inertiaVelocity.x * leanSensitivity;
-            leanAmount = Mathf.Clamp(leanAmount, -maxLeanAngle, maxLeanAngle);
-
+            float leanAmount = Mathf.Clamp(inertiaVelocity.x * leanSensitivity, -maxLeanAngle, maxLeanAngle);
             float currentYRotation = transform.localEulerAngles.y;
             Quaternion targetLeanRotation = Quaternion.Euler(leanAmount, currentYRotation, 0f);
             transform.localRotation = Quaternion.Slerp(transform.localRotation, targetLeanRotation, 7f * Time.deltaTime);
@@ -141,7 +143,6 @@ public class BusPlayerController : MonoBehaviour
         Vector3 finalMovement = (direction * activeMoveSpeed) + inertiaVelocity;
         controller.Move(finalMovement * Time.deltaTime);
 
-        // ระบบ Stamina
         if (isShiftHold && isMoving && currentStamina > 0)
             currentStamina -= staminaDrainRate * Time.deltaTime;
         else if (isShiftHold)
@@ -151,7 +152,6 @@ public class BusPlayerController : MonoBehaviour
 
         currentStamina = Mathf.Clamp(currentStamina, 0, maxStamina);
 
-        // ระบบแรงโน้มถ่วง
         if (controller.isGrounded && velocity.y < 0) velocity.y = -2f;
         velocity.y = Mathf.Max(velocity.y + gravity * Time.deltaTime, maxFallSpeed);
         controller.Move(velocity * Time.deltaTime);
@@ -161,25 +161,26 @@ public class BusPlayerController : MonoBehaviour
     {
         if (isTransactionActive) return;
 
-        Ray ray = new Ray(playerCamera.position, playerCamera.forward);
-        RaycastHit hit;
         bool foundInteractable = false;
 
-        if (Physics.Raycast(ray, out hit, interactRange, interactLayer))
+        if (TryGetInteractable(out IInteractable interactable))
         {
-            IInteractable interactable = hit.collider.GetComponentInParent<IInteractable>();
+            foundInteractable = true;
+            if (interactPromptUI != null)
+                interactPromptUI.Show(interactable.GetPromptText());
 
-            if (interactable != null && interactable.CanInteract())
+            if (Input.GetKeyDown(KeyCode.E))
             {
-                foundInteractable = true;
-                if (interactPromptUI != null) interactPromptUI.Show(interactable.GetPromptText());
+                bool shouldLockInteraction = interactable is PassengerAI;
+                isTransactionActive = shouldLockInteraction;
 
-                if (Input.GetKeyDown(KeyCode.E))
-                {
-                    isTransactionActive = true;
-                    if (interactPromptUI != null) interactPromptUI.Hide();
-                    interactable.Interact();
-                }
+                if (interactPromptUI != null)
+                    interactPromptUI.Hide();
+
+                interactable.Interact();
+
+                if (!shouldLockInteraction)
+                    ResetInteraction();
             }
         }
 
@@ -187,25 +188,143 @@ public class BusPlayerController : MonoBehaviour
             interactPromptUI.Hide();
     }
 
+    bool TryGetInteractable(out IInteractable interactable)
+    {
+        Ray ray = new Ray(playerCamera.position, playerCamera.forward);
+
+        if (TryGetInteractableFromHits(Physics.RaycastAll(ray, interactRange, interactLayer), out interactable))
+            return true;
+
+        if (TryGetInteractableFromHits(Physics.RaycastAll(ray, interactRange), out interactable))
+            return true;
+
+        return TryGetSeatInstallFallback(ray, out interactable);
+    }
+
+    bool TryGetInteractableFromHits(RaycastHit[] hits, out IInteractable interactable)
+    {
+        interactable = default;
+        if (hits == null || hits.Length == 0)
+            return false;
+
+        Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        for (int i = 0; i < hits.Length; i++)
+        {
+            Collider hitCollider = hits[i].collider;
+            if (hitCollider == null)
+                continue;
+
+            IInteractable candidate = hitCollider.GetComponentInParent<IInteractable>();
+            if (candidate == null || !candidate.CanInteract())
+                continue;
+
+            interactable = candidate;
+            return true;
+        }
+
+        return false;
+    }
+
+    bool TryGetSeatInstallFallback(Ray ray, out IInteractable interactable)
+    {
+        interactable = default;
+        if (!IsCarryingSeatPackage())
+            return false;
+
+        BusSeat[] seats = UnityEngine.Object.FindObjectsByType<BusSeat>(FindObjectsSortMode.None);
+        BusSeat bestSeat = null;
+        float bestScore = float.MaxValue;
+
+        for (int i = 0; i < seats.Length; i++)
+        {
+            BusSeat seat = seats[i];
+            if (seat == null || !seat.CanInteract())
+                continue;
+
+            Vector3 targetPosition = seat.transform.position + seat.transform.up * 0.35f;
+            Vector3 toTarget = targetPosition - ray.origin;
+            float forwardDistance = Vector3.Dot(ray.direction, toTarget);
+            if (forwardDistance < 0f || forwardDistance > seatInstallAssistRange)
+                continue;
+
+            Vector3 closestPoint = ray.origin + ray.direction * forwardDistance;
+            float lateralDistance = Vector3.Distance(closestPoint, targetPosition);
+            if (lateralDistance > seatInstallAssistWidth)
+                continue;
+
+            float score = lateralDistance + (forwardDistance * 0.05f);
+            if (score >= bestScore)
+                continue;
+
+            bestScore = score;
+            bestSeat = seat;
+        }
+
+        if (bestSeat == null)
+            return false;
+
+        interactable = bestSeat;
+        return true;
+    }
+
     public void ResetInteraction()
     {
         isTransactionActive = false;
     }
 
-    // ✅ ระบบเช็คว่าอยู่บนรถหรือเปล่า
+    public bool IsCarryingSeatPackage()
+    {
+        return carriedSeatPackage != null;
+    }
+
+    public int GetCarriedSeatLevel()
+    {
+        return carriedSeatPackage != null ? carriedSeatPackage.seatLevel : 0;
+    }
+
+    public void AttachSeatPackage(SeatDeliveryCrate crate)
+    {
+        if (crate == null)
+            return;
+
+        EnsureCarryAnchor();
+        carriedSeatPackage = crate;
+        carriedSeatPackage.SetCarriedState(true);
+        carriedSeatPackage.transform.SetParent(carryAnchor, false);
+        carriedSeatPackage.transform.localPosition = carriedItemLocalPosition;
+        carriedSeatPackage.transform.localRotation = Quaternion.Euler(carriedItemLocalEuler);
+    }
+
+    public void ClearCarriedSeatPackage()
+    {
+        if (carriedSeatPackage == null)
+            return;
+
+        Destroy(carriedSeatPackage.gameObject);
+        carriedSeatPackage = null;
+    }
+
+    void EnsureCarryAnchor()
+    {
+        if (carryAnchor != null)
+            return;
+
+        Transform parent = playerCamera != null ? playerCamera : transform;
+        GameObject anchor = new GameObject("CarryAnchor");
+        anchor.transform.SetParent(parent, false);
+        carryAnchor = anchor.transform;
+    }
+
     void OnTriggerStay(Collider other)
     {
         if (other.CompareTag("BusZone"))
-        {
             isInsideBus = true;
-        }
     }
 
     void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("BusZone"))
-        {
             isInsideBus = false;
-        }
     }
 }

@@ -6,6 +6,7 @@ using System;
 public class PassengerAI : MonoBehaviour, IInteractable
 {
     public enum State { Boarding, FindingSeat, Seated, WaitingForFare, HandExtended, Paying, Riding, Exiting }
+    public enum RandomEventType { None, ToxicSmell, DrunkDance, LoudPhone }
     public State currentState = State.Boarding;
     public int targetStop;
 
@@ -72,14 +73,44 @@ public class PassengerAI : MonoBehaviour, IInteractable
 
     [Header("Events")]
     public Action onExitBus;
+    public Action<PassengerAI, bool> onRandomEventFinished;
+
+    [Header("Random Events")]
+    [SerializeField] RandomEventType activeRandomEvent = RandomEventType.None;
+    [SerializeField] float drunkDanceYawAmplitude = 15f;
+    [SerializeField] float drunkDanceBobAmplitude = 0.035f;
+    [SerializeField] float loudPhoneTiltAmplitude = 9f;
+    [SerializeField] float eventAnimationSpeed = 4.2f;
+
+    [Header("Random Event Audio")]
+    public AudioSource randomEventAudioSource;
+    public AudioClip drunkDanceAudioClip;
+    public AudioClip loudPhoneAudioClip;
+    [Range(0f, 1f)] public float randomEventAudioVolume = 0.85f;
+    public bool loopRandomEventAudio = true;
+
+    [Header("Random Event Animation")]
+    public Animator randomEventAnimator;
+    public string drunkDanceBoolName = "isDrunkDancing";
+    public string drunkDanceTriggerName = "trigDrunkDance";
+    public string drunkDanceStopTriggerName = "trigStopDrunkDance";
+    public string loudPhoneBoolName = "isTalkingLoudPhone";
+    public string loudPhoneTriggerName = "trigLoudPhone";
+    public string loudPhoneStopTriggerName = "trigStopLoudPhone";
 
     private bool isProcessingPayment = false;
+    private Vector3 seatedBasePosition;
+    private Quaternion seatedBaseRotation;
+    private bool hasSeatedBasePose = false;
 
     // ===============================
     void Start()
     {
         fareSystem = FindFirstObjectByType<FareSystem>();
         rb = GetComponent<Rigidbody>();
+
+        if (randomEventAnimator == null)
+            randomEventAnimator = animator;
 
         if (moneyProp != null) moneyProp.SetActive(false);
 
@@ -97,12 +128,15 @@ public class PassengerAI : MonoBehaviour, IInteractable
 
         if (toxicVFX != null)
             toxicVFX.SetActive(isToxic);
+
+        EnsureRandomEventAudioSource();
     }
 
     void Update()
     {
         UpdateAnimationSpeed();
         UpdateMoodOverTime();
+        UpdateRandomEventMotion();
     }
 
     // ===============================
@@ -151,7 +185,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
     // 🌟 ระบบขึ้นรถและหาที่นั่ง
     // ===============================
 
-    public void WaitAtStop(Transform waitPoint)
+    public void WaitAtStop(Vector3 waitPosition, Quaternion waitRotation, Transform waitParent = null)
     {
         // ✅ เช็ค isOnNavMesh ก่อนสั่ง isStopped เพื่อป้องกัน error
         if (agent != null)
@@ -161,9 +195,9 @@ public class PassengerAI : MonoBehaviour, IInteractable
         }
         if (rb != null) { rb.isKinematic = true; rb.linearVelocity = Vector3.zero; }
 
-        transform.position = waitPoint.position;
-        transform.rotation = waitPoint.rotation;
-        transform.SetParent(waitPoint);
+        transform.position = waitPosition;
+        transform.rotation = waitRotation;
+        transform.SetParent(waitParent, true);
     }
 
     public void BoardBus()
@@ -210,6 +244,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
 
         currentState = State.WaitingForFare;
         currentWaitTime = 0f;
+        CaptureSeatPose();
 
         // ✅ แก้บั๊ก 1: เริ่ม coroutine ลงรถให้ทุกคน ไม่ว่าจะจ่ายเงินหรือไม่ก็ตาม
         StartCoroutine(RideAndGetOff());
@@ -227,28 +262,43 @@ public class PassengerAI : MonoBehaviour, IInteractable
         float elapsed = 0f;
         Vector3 startPos = transform.position;
         Quaternion startRot = transform.rotation;
+        Pose targetPose = assignedSeat != null
+            ? assignedSeat.GetPassengerSnapPose(seatPoint)
+            : new Pose(seatPoint.position, seatPoint.rotation);
 
         while (elapsed < duration)
         {
             float t = elapsed / duration;
-            transform.position = Vector3.Lerp(startPos, seatPoint.position, t);
-            transform.rotation = Quaternion.Slerp(startRot, seatPoint.rotation, t);
+            transform.position = Vector3.Lerp(startPos, targetPose.position, t);
+            transform.rotation = Quaternion.Slerp(startRot, targetPose.rotation, t);
             elapsed += Time.deltaTime;
             yield return null;
         }
 
-        transform.position = seatPoint.position;
-        transform.rotation = seatPoint.rotation;
+        transform.position = targetPose.position;
+        transform.rotation = targetPose.rotation;
     }
 
     // ===============================
     // 🌟 ระบบคิดเงิน
     // ===============================
 
-    public bool CanInteract() => currentState == State.WaitingForFare && !hasPaid && !isProcessingPayment;
+    public bool CanInteract()
+    {
+        if (CanResolveRandomEvent())
+            return true;
+
+        return currentState == State.WaitingForFare && !hasPaid && !isProcessingPayment;
+    }
 
     public void Interact()
     {
+        if (CanResolveRandomEvent())
+        {
+            ResolveRandomEvent();
+            return;
+        }
+
         if (!CanInteract()) return;
         currentState = State.HandExtended;
 
@@ -280,6 +330,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
         hasPaidTicket = true; // setter จะตั้ง hasPaid = true ให้อัตโนมัติ
 
         currentState = State.Riding;
+        CaptureSeatPose();
 
         float popularityChange = (currentWaitTime < timeToNeutral) ? 3f : 1f;
         if (GameManager.Instance != null)
@@ -300,6 +351,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
         // รอจนกว่า BusController/StopManager จะเรียก TriggerExit() เพื่อเปลี่ยน State เป็น Exiting
         yield return new WaitUntil(() => currentState == State.Exiting);
 
+        FinishRandomEvent(false);
         OnReachDestinationAndGetOff();
 
         // ลุกจากที่นั่ง
@@ -332,6 +384,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
         }
 
         onExitBus?.Invoke();
+        onExitBus = null;
         Destroy(gameObject);
     }
 
@@ -408,6 +461,15 @@ public class PassengerAI : MonoBehaviour, IInteractable
 
     public string GetPromptText()
     {
+        if (CanResolveRandomEvent())
+        {
+            if (activeRandomEvent == RandomEventType.DrunkDance)
+                return "กด E เพื่อเตือนคนเมาให้หยุดป่วน";
+
+            if (activeRandomEvent == RandomEventType.LoudPhone)
+                return "กด E เพื่อเตือนให้คุยโทรศัพท์เบา ๆ";
+        }
+
         if (currentState == State.WaitingForFare)  return "กด E เพื่อรับเงิน";
         if (currentState == State.HandExtended)    return "คลิกเพื่อรับเงิน";
         return "";
@@ -428,5 +490,245 @@ public class PassengerAI : MonoBehaviour, IInteractable
     float GetPatienceDecayMultiplier()
     {
         return assignedSeat != null ? assignedSeat.GetPatienceDecayMultiplier() : 1f;
+    }
+
+    public bool CanReceiveRandomEvent()
+    {
+        return currentState == State.Riding &&
+               hasPaidTicket &&
+               !isProcessingPayment &&
+               activeRandomEvent == RandomEventType.None;
+    }
+
+    public RandomEventType GetActiveRandomEvent()
+    {
+        return activeRandomEvent;
+    }
+
+    public bool TryStartRandomEvent(RandomEventType eventType)
+    {
+        if (eventType == RandomEventType.None || !CanReceiveRandomEvent())
+            return false;
+
+        activeRandomEvent = eventType;
+        CaptureSeatPose();
+
+        switch (activeRandomEvent)
+        {
+            case RandomEventType.ToxicSmell:
+                SetToxicState(true);
+                SetMood(Mood.Angry);
+                break;
+            case RandomEventType.DrunkDance:
+                SetMood(Mood.Happy);
+                break;
+            case RandomEventType.LoudPhone:
+                SetMood(Mood.Neutral);
+                break;
+        }
+
+        PlayRandomEventAnimation();
+        PlayRandomEventAudio();
+
+        return true;
+    }
+
+    public bool CanResolveRandomEvent()
+    {
+        return currentState == State.Riding &&
+               (activeRandomEvent == RandomEventType.DrunkDance || activeRandomEvent == RandomEventType.LoudPhone);
+    }
+
+    public void ResolveRandomEvent()
+    {
+        if (!CanResolveRandomEvent())
+            return;
+
+        FinishRandomEvent(true);
+    }
+
+    void CaptureSeatPose()
+    {
+        seatedBasePosition = transform.position;
+        seatedBaseRotation = transform.rotation;
+        hasSeatedBasePose = true;
+    }
+
+    void UpdateRandomEventMotion()
+    {
+        if (!hasSeatedBasePose || activeRandomEvent == RandomEventType.None || currentState != State.Riding)
+            return;
+
+        float phase = Time.time * eventAnimationSpeed;
+        Vector3 positionOffset = Vector3.zero;
+        Quaternion rotationOffset = Quaternion.identity;
+
+        switch (activeRandomEvent)
+        {
+            case RandomEventType.DrunkDance:
+                positionOffset = transform.up * (Mathf.Sin(phase * 1.6f) * drunkDanceBobAmplitude);
+                rotationOffset = Quaternion.Euler(0f, Mathf.Sin(phase * 2.1f) * drunkDanceYawAmplitude, Mathf.Sin(phase) * 4f);
+                break;
+
+            case RandomEventType.LoudPhone:
+                rotationOffset = Quaternion.Euler(0f, Mathf.Sin(phase * 1.4f) * 6f, Mathf.Sin(phase * 0.9f) * loudPhoneTiltAmplitude);
+                break;
+        }
+
+        transform.position = seatedBasePosition + positionOffset;
+        transform.rotation = seatedBaseRotation * rotationOffset;
+    }
+
+    void FinishRandomEvent(bool resolved)
+    {
+        if (activeRandomEvent == RandomEventType.None)
+            return;
+
+        StopRandomEventAnimation();
+        StopRandomEventAudio();
+        activeRandomEvent = RandomEventType.None;
+        SetToxicState(false);
+        SetMood(Mood.None);
+
+        if (hasSeatedBasePose && currentState != State.Exiting)
+        {
+            transform.position = seatedBasePosition;
+            transform.rotation = seatedBaseRotation;
+        }
+
+        onRandomEventFinished?.Invoke(this, resolved);
+        onRandomEventFinished = null;
+    }
+
+    void EnsureRandomEventAudioSource()
+    {
+        if (randomEventAudioSource != null)
+            return;
+
+        randomEventAudioSource = GetComponent<AudioSource>();
+        if (randomEventAudioSource == null)
+            randomEventAudioSource = gameObject.AddComponent<AudioSource>();
+
+        randomEventAudioSource.playOnAwake = false;
+        randomEventAudioSource.loop = loopRandomEventAudio;
+        randomEventAudioSource.spatialBlend = 1f;
+        randomEventAudioSource.minDistance = 1.2f;
+        randomEventAudioSource.maxDistance = 8f;
+        randomEventAudioSource.rolloffMode = AudioRolloffMode.Linear;
+    }
+
+    void PlayRandomEventAudio()
+    {
+        EnsureRandomEventAudioSource();
+        if (randomEventAudioSource == null)
+            return;
+
+        AudioClip clip = GetRandomEventAudioClip();
+        if (clip == null)
+            return;
+
+        randomEventAudioSource.clip = clip;
+        randomEventAudioSource.volume = randomEventAudioVolume;
+        randomEventAudioSource.loop = loopRandomEventAudio;
+        randomEventAudioSource.Play();
+    }
+
+    void StopRandomEventAudio()
+    {
+        if (randomEventAudioSource == null)
+            return;
+
+        if (randomEventAudioSource.isPlaying)
+            randomEventAudioSource.Stop();
+
+        randomEventAudioSource.clip = null;
+    }
+
+    AudioClip GetRandomEventAudioClip()
+    {
+        return activeRandomEvent switch
+        {
+            RandomEventType.DrunkDance => drunkDanceAudioClip,
+            RandomEventType.LoudPhone => loudPhoneAudioClip,
+            _ => null
+        };
+    }
+
+    void PlayRandomEventAnimation()
+    {
+        Animator targetAnimator = randomEventAnimator != null ? randomEventAnimator : animator;
+        if (targetAnimator == null)
+            return;
+
+        switch (activeRandomEvent)
+        {
+            case RandomEventType.DrunkDance:
+                SetAnimatorBoolIfExists(targetAnimator, drunkDanceBoolName, true);
+                SetAnimatorTriggerIfExists(targetAnimator, drunkDanceTriggerName);
+                break;
+
+            case RandomEventType.LoudPhone:
+                SetAnimatorBoolIfExists(targetAnimator, loudPhoneBoolName, true);
+                SetAnimatorTriggerIfExists(targetAnimator, loudPhoneTriggerName);
+                break;
+        }
+    }
+
+    void StopRandomEventAnimation()
+    {
+        Animator targetAnimator = randomEventAnimator != null ? randomEventAnimator : animator;
+        if (targetAnimator == null)
+            return;
+
+        switch (activeRandomEvent)
+        {
+            case RandomEventType.DrunkDance:
+                SetAnimatorBoolIfExists(targetAnimator, drunkDanceBoolName, false);
+                SetAnimatorTriggerIfExists(targetAnimator, drunkDanceStopTriggerName);
+                break;
+
+            case RandomEventType.LoudPhone:
+                SetAnimatorBoolIfExists(targetAnimator, loudPhoneBoolName, false);
+                SetAnimatorTriggerIfExists(targetAnimator, loudPhoneStopTriggerName);
+                break;
+        }
+    }
+
+    void SetAnimatorBoolIfExists(Animator targetAnimator, string parameterName, bool value)
+    {
+        if (targetAnimator == null || string.IsNullOrWhiteSpace(parameterName) || !HasAnimatorParameter(targetAnimator, parameterName, AnimatorControllerParameterType.Bool))
+            return;
+
+        targetAnimator.SetBool(parameterName, value);
+    }
+
+    void SetAnimatorTriggerIfExists(Animator targetAnimator, string parameterName)
+    {
+        if (targetAnimator == null || string.IsNullOrWhiteSpace(parameterName) || !HasAnimatorParameter(targetAnimator, parameterName, AnimatorControllerParameterType.Trigger))
+            return;
+
+        targetAnimator.SetTrigger(parameterName);
+    }
+
+    bool HasAnimatorParameter(Animator targetAnimator, string parameterName, AnimatorControllerParameterType parameterType)
+    {
+        if (targetAnimator == null || string.IsNullOrWhiteSpace(parameterName))
+            return false;
+
+        AnimatorControllerParameter[] parameters = targetAnimator.parameters;
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            if (parameters[i].type == parameterType && parameters[i].name == parameterName)
+                return true;
+        }
+
+        return false;
+    }
+
+    void OnDestroy()
+    {
+        FinishRandomEvent(false);
+        onExitBus?.Invoke();
+        onExitBus = null;
     }
 }

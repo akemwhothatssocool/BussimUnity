@@ -18,9 +18,25 @@ public class CityManager : MonoBehaviour
     private float _targetSpeed;
     private List<Transform> _blocks = new List<Transform>();
     private int _blockCount;
+    private float _baseScrollSpeed;
+    private bool _isScrollPaused;
 
-    public void PauseScroll() => _targetSpeed = 0f;
-    public void ResumeScroll() => _targetSpeed = scrollSpeed;
+    void Awake()
+    {
+        _baseScrollSpeed = scrollSpeed;
+    }
+
+    public void PauseScroll()
+    {
+        _isScrollPaused = true;
+        _targetSpeed = 0f;
+    }
+
+    public void ResumeScroll()
+    {
+        _isScrollPaused = false;
+        _targetSpeed = GetEffectiveScrollSpeed();
+    }
 
     void Start()
     {
@@ -38,6 +54,7 @@ public class CityManager : MonoBehaviour
 
         _blocks.Sort((a, b) => a.position.x.CompareTo(b.position.x));
 
+        scrollSpeed = GetEffectiveScrollSpeed();
         _currentSpeed = scrollSpeed;
         _targetSpeed = scrollSpeed;
     }
@@ -88,6 +105,34 @@ public class CityManager : MonoBehaviour
         foreach (Transform t in _blocks)
             if (t.position.x < min) min = t.position.x;
         return min;
+    }
+
+    public void ApplyEngineSpeedBonus(float bonus)
+    {
+        scrollSpeed = GetEffectiveScrollSpeed(bonus);
+
+        if (_isScrollPaused)
+        {
+            _targetSpeed = 0f;
+            return;
+        }
+
+        _currentSpeed = scrollSpeed;
+        _targetSpeed = scrollSpeed;
+    }
+
+    float GetEffectiveScrollSpeed(float overrideBonus = float.NaN)
+    {
+        float direction = Mathf.Approximately(_baseScrollSpeed, 0f) ? Mathf.Sign(scrollSpeed) : Mathf.Sign(_baseScrollSpeed);
+        if (Mathf.Approximately(direction, 0f))
+            direction = -1f;
+
+        float baseMagnitude = Mathf.Abs(_baseScrollSpeed);
+        float bonus = float.IsNaN(overrideBonus)
+            ? (GameManager.Instance != null ? Mathf.Max(0f, GameManager.Instance.engineSpeedBonus) : 0f)
+            : Mathf.Max(0f, overrideBonus);
+
+        return direction * (baseMagnitude + bonus);
     }
 
 #if UNITY_EDITOR
