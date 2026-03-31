@@ -71,7 +71,7 @@ public class BusStopTrigger : MonoBehaviour
         // 3. รอจนกว่าทั้ง "คนขึ้น" และ "คนลง" ทำงานเสร็จหมด
         yield return new WaitUntil(() => busStopManager.IsBoardingFinished() && !AnyPassengerExiting());
 
-        yield return new WaitForSeconds(1.0f);
+        yield return new WaitForSeconds(3f);
 
         // 4. อัปเดตจำนวนป้าย
         if (GameManager.Instance != null)
