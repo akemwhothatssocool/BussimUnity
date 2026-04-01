@@ -23,7 +23,7 @@ public class PlayerWallet : MonoBehaviour
 
     void Start()
     {
-        currentMoney = startingMoney;
+        currentMoney = PlayerPrefs.GetInt(PlayerMoneyKey, startingMoney);
         UpdateHUD();
     }
 

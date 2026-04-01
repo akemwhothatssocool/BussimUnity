@@ -592,7 +592,7 @@ MonoBehaviour:
   storyPanel: {fileID: 0}
   settingsPanel: {fileID: 868546282}
   firstSceneName: GameScene
-  newGameStartingMoney: 100
+  newGameStartingMoney: 550
   firstSelected: {fileID: 640277965}
 --- !u!1 &521617544
 GameObject:

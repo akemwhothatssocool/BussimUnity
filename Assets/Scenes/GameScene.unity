@@ -1353,7 +1353,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: abf750825003ff34284e12b6a8840457, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWallet
-  startingMoney: 2000
+  startingMoney: 100
   textWalletHUD: {fileID: 322354949}
   currentMoney: 100
 --- !u!114 &56202935
@@ -1370,15 +1370,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   currentDay: 1
   stopsReached: 0
-  stopsPerDay: 5
+  stopsPerDay: 4
   dailyPassengers: 0
   dailyMissed: 0
   dailyIncome: 0
-  dailyGasCost: 0
-  dailyRepairCost: 0
+  dailyGasCost: 55
+  dailyRepairCost: 20
   engineSpeedBonus: 0
   permanentPopularityBonus: 0
-  popularity: 20
+  popularity: 35
   dailyPopularityGain: 0
   summaryPanel: {fileID: 957029031}
   txtPassengers: {fileID: 1742438724}
@@ -1390,7 +1390,7 @@ MonoBehaviour:
   txtNetProfit: {fileID: 1533911114}
   txtPopularityGain: {fileID: 1722805386}
   busRateDisplay: {fileID: 1194956559}
-  alwaysStartFreshInEditor: 1
+  alwaysStartFreshInEditor: 0
 --- !u!114 &56202936
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1410,14 +1410,15 @@ MonoBehaviour:
   txtToggleHint: {fileID: 0}
   toggleHintMessage: 
   toggleHotkeyLabel: B
-  engineUpgradeCost: 300
+  engineUpgradeCost: 160
   engineSpeedIncreaseAmount: 2
   txtEngineCost: {fileID: 1574197404}
-  fuelUpgradeCost: 300
-  gasReductionAmount: 50
+  fuelUpgradeCost: 140
+  stopIncreasePerFuelUpgrade: 1
+  maxStopsPerDay: 8
   txtFuelCost: {fileID: 120161521}
-  seatUpgradeCost: 300
-  popularityBoost: 15
+  seatUpgradeCost: 220
+  popularityBoost: 5
   txtSeatCost: {fileID: 851420711}
 --- !u!114 &56202937
 MonoBehaviour:
@@ -1431,9 +1432,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2fb9756498db4b346b561e5b3aad4422, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeShop
-  priceLv1: 150
-  priceLv2: 450
-  priceLv3: 900
+  priceLv1: 80
+  priceLv2: 180
+  priceLv3: 350
   txtShopFeedback: {fileID: 2147432103}
 --- !u!1 &65579403
 GameObject:
@@ -2092,7 +2093,7 @@ RectTransform:
   m_Father: {fileID: 1187940551}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 0.2}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -3083,7 +3084,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 93370534}
   m_Direction: 2
   m_Value: 0
-  m_Size: 0.2
+  m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -7151,14 +7152,13 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 688782518}
-  - {fileID: 465035198}
   - {fileID: 459413989}
   m_Father: {fileID: 410478970}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 20}
+  m_SizeDelta: {x: 0, y: 34}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &332529632
 MonoBehaviour:
@@ -7202,7 +7202,7 @@ MonoBehaviour:
   m_Interactable: 1
   m_TargetGraphic: {fileID: 688782519}
   toggleTransition: 1
-  graphic: {fileID: 465035199}
+  graphic: {fileID: 0}
   m_Group: {fileID: 0}
   onValueChanged:
     m_PersistentCalls:
@@ -8520,7 +8520,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 28}
+  m_SizeDelta: {x: 0, y: 72}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!1 &418846518
 GameObject:
@@ -9557,7 +9557,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Option A
+  m_text: Chair
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -9566,7 +9566,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4281479730
   m_fontColor: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -9579,13 +9579,13 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 14
-  m_fontSizeBase: 14
+  m_fontSize: 31.17
+  m_fontSizeBase: 31.17
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -9727,81 +9727,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 463890150}
   m_Mesh: {fileID: -5856031937370525003, guid: f11799a4556a240c48819e7c5482f47e, type: 3}
---- !u!1 &465035197
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 465035198}
-  - component: {fileID: 465035200}
-  - component: {fileID: 465035199}
-  m_Layer: 5
-  m_Name: Item Checkmark
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &465035198
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 465035197}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 332529631}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0.5}
-  m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 10, y: 0}
-  m_SizeDelta: {x: 20, y: 20}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &465035199
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 465035197}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 10901, guid: 0000000000000000f000000000000000, type: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
---- !u!222 &465035200
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 465035197}
-  m_CullTransparentMesh: 1
 --- !u!1 &465490335
 GameObject:
   m_ObjectHideFlags: 0
@@ -9859,7 +9784,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 150
+  m_text: 80
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: e5d28cb6b90928d48a5f31bb780538c5, type: 2}
   m_sharedMaterial: {fileID: -6020180202787639182, guid: e5d28cb6b90928d48a5f31bb780538c5, type: 2}
@@ -14259,7 +14184,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BusSeat
   currentState: 1
   currentLevel: 0
-  sellPrice: 50
+  sellPrice: 20
   brokenModel: {fileID: 919132149155446097, guid: c6b7445809f6415e99fa8d55e7971761, type: 3}
   emptyModel: {fileID: 0}
   goodModel: {fileID: 0}
@@ -14267,7 +14192,7 @@ MonoBehaviour:
   goodModelLv2: {fileID: 919132149155446097, guid: 2bf1a8b4b8324ca8a4fbb7fcb3d62041, type: 3}
   goodModelLv3: {fileID: 919132149155446097, guid: 5d9270d6d7f44b5ea7e592918bf86c1f, type: 3}
   seatId: 'Bus[7]/Bus_Interior[3]/SeatPlacementLayoutRoot[14]/SeatPlacementVisual
-    (1)[6]'
+    (6)[6]'
   interactionCollider: {fileID: 686952495}
   solidCollider: {fileID: 686952497}
   emptySeatInteractionCenter: {x: 0, y: 0.42, z: 0}
@@ -16700,7 +16625,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BusSeat
   currentState: 1
   currentLevel: 0
-  sellPrice: 50
+  sellPrice: 20
   brokenModel: {fileID: 919132149155446097, guid: c6b7445809f6415e99fa8d55e7971761, type: 3}
   emptyModel: {fileID: 0}
   goodModel: {fileID: 0}
@@ -16885,7 +16810,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BusSeat
   currentState: 1
   currentLevel: 0
-  sellPrice: 50
+  sellPrice: 20
   brokenModel: {fileID: 919132149155446097, guid: c6b7445809f6415e99fa8d55e7971761, type: 3}
   emptyModel: {fileID: 0}
   goodModel: {fileID: 0}
@@ -17500,7 +17425,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BusSeat
   currentState: 1
   currentLevel: 0
-  sellPrice: 50
+  sellPrice: 20
   brokenModel: {fileID: 919132149155446097, guid: c6b7445809f6415e99fa8d55e7971761, type: 3}
   emptyModel: {fileID: 0}
   goodModel: {fileID: 0}
@@ -18508,7 +18433,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BusSeat
   currentState: 1
   currentLevel: 0
-  sellPrice: 50
+  sellPrice: 20
   brokenModel: {fileID: 919132149155446097, guid: c6b7445809f6415e99fa8d55e7971761, type: 3}
   emptyModel: {fileID: 0}
   goodModel: {fileID: 0}
@@ -19222,7 +19147,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BusSeat
   currentState: 1
   currentLevel: 0
-  sellPrice: 50
+  sellPrice: 20
   brokenModel: {fileID: 919132149155446097, guid: c6b7445809f6415e99fa8d55e7971761, type: 3}
   emptyModel: {fileID: 0}
   goodModel: {fileID: 0}
@@ -19775,7 +19700,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BusSeat
   currentState: 1
   currentLevel: 0
-  sellPrice: 50
+  sellPrice: 20
   brokenModel: {fileID: 919132149155446097, guid: c6b7445809f6415e99fa8d55e7971761, type: 3}
   emptyModel: {fileID: 0}
   goodModel: {fileID: 0}
@@ -20405,8 +20330,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -220.43652, y: 458}
-  m_SizeDelta: {x: 320.2629, y: 117.9916}
+  m_AnchoredPosition: {x: -201, y: 448}
+  m_SizeDelta: {x: 388, y: 146}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &960512675
 MonoBehaviour:
@@ -20459,13 +20384,10 @@ MonoBehaviour:
   m_MultiSelect: 0
   m_Options:
     m_Options:
-    - m_Text: Option A
+    - m_Text: Chair
       m_Image: {fileID: 0}
       m_Color: {r: 1, g: 1, b: 1, a: 1}
-    - m_Text: Option B
-      m_Image: {fileID: 0}
-      m_Color: {r: 1, g: 1, b: 1, a: 1}
-    - m_Text: Option C
+    - m_Text: Fan
       m_Image: {fileID: 0}
       m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_OnValueChanged:
@@ -21677,7 +21599,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BusSeat
   currentState: 1
   currentLevel: 0
-  sellPrice: 50
+  sellPrice: 20
   brokenModel: {fileID: 919132149155446097, guid: c6b7445809f6415e99fa8d55e7971761, type: 3}
   emptyModel: {fileID: 0}
   goodModel: {fileID: 0}
@@ -21749,9 +21671,9 @@ RectTransform:
   m_Father: {fileID: 2067180736}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: -18, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &1024989183
 MonoBehaviour:
@@ -22654,7 +22576,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BusSeat
   currentState: 1
   currentLevel: 0
-  sellPrice: 50
+  sellPrice: 20
   brokenModel: {fileID: 919132149155446097, guid: c6b7445809f6415e99fa8d55e7971761, type: 3}
   emptyModel: {fileID: 0}
   goodModel: {fileID: 0}
@@ -23387,7 +23309,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BusSeat
   currentState: 1
   currentLevel: 0
-  sellPrice: 50
+  sellPrice: 20
   brokenModel: {fileID: 919132149155446097, guid: c6b7445809f6415e99fa8d55e7971761, type: 3}
   emptyModel: {fileID: 0}
   goodModel: {fileID: 0}
@@ -23847,8 +23769,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -12.2, y: 7.6568}
-  m_SizeDelta: {x: -123.1563, y: -69.159}
+  m_AnchoredPosition: {x: -6, y: 10.061124}
+  m_SizeDelta: {x: -140, y: -44}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1142555170
 MonoBehaviour:
@@ -23870,7 +23792,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Option A
+  m_text: Chair
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: e5d28cb6b90928d48a5f31bb780538c5, type: 2}
   m_sharedMaterial: {fileID: -6020180202787639182, guid: e5d28cb6b90928d48a5f31bb780538c5, type: 2}
@@ -23897,8 +23819,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 35
-  m_fontSizeBase: 35
+  m_fontSize: 42
+  m_fontSizeBase: 42
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -24558,7 +24480,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BusSeat
   currentState: 1
   currentLevel: 0
-  sellPrice: 50
+  sellPrice: 20
   brokenModel: {fileID: 919132149155446097, guid: c6b7445809f6415e99fa8d55e7971761, type: 3}
   emptyModel: {fileID: 0}
   goodModel: {fileID: 0}
@@ -26306,7 +26228,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BusSeat
   currentState: 1
   currentLevel: 0
-  sellPrice: 50
+  sellPrice: 20
   brokenModel: {fileID: 919132149155446097, guid: c6b7445809f6415e99fa8d55e7971761, type: 3}
   emptyModel: {fileID: 0}
   goodModel: {fileID: 0}
@@ -26659,7 +26581,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BusSeat
   currentState: 1
   currentLevel: 0
-  sellPrice: 50
+  sellPrice: 20
   brokenModel: {fileID: 919132149155446097, guid: c6b7445809f6415e99fa8d55e7971761, type: 3}
   emptyModel: {fileID: 0}
   goodModel: {fileID: 0}
@@ -28824,10 +28746,19 @@ MonoBehaviour:
   - {fileID: 1543422751}
   - {fileID: 886532965}
   - {fileID: 836126556}
-  standPoints: []
+  standPoints:
+  - {fileID: 363033817}
+  - {fileID: 1607110402}
+  - {fileID: 1585467591}
+  - {fileID: 1044799668}
+  - {fileID: 754768868}
+  - {fileID: 456351497}
+  - {fileID: 523235629}
+  - {fileID: 1146801738}
+  - {fileID: 738422643}
   maxPeoplePerStop: 5
-  spawnDelay: 2
-  boardDelay: 1.5
+  spawnDelay: 1.35
+  boardDelay: 0.95
   spawnRadius: 1.2
   minWaitSpacing: 0.8
   maxSpawnPositionAttempts: 12
@@ -29918,7 +29849,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BusSeat
   currentState: 1
   currentLevel: 0
-  sellPrice: 50
+  sellPrice: 20
   brokenModel: {fileID: 919132149155446097, guid: c6b7445809f6415e99fa8d55e7971761, type: 3}
   emptyModel: {fileID: 0}
   goodModel: {fileID: 0}
@@ -34838,7 +34769,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BusSeat
   currentState: 1
   currentLevel: 0
-  sellPrice: 50
+  sellPrice: 20
   brokenModel: {fileID: 919132149155446097, guid: c6b7445809f6415e99fa8d55e7971761, type: 3}
   emptyModel: {fileID: 0}
   goodModel: {fileID: 0}
@@ -35503,8 +35434,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
-  m_AnchoredPosition: {x: -57.7, y: 9.6667}
-  m_SizeDelta: {x: 44.8127, y: 44.8127}
+  m_AnchoredPosition: {x: -78.4, y: 6.968266}
+  m_SizeDelta: {x: 54, y: 54}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1736807178
 MonoBehaviour:
@@ -39724,7 +39655,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   currentState: 1
   currentLevel: 0
-  sellPrice: 50
+  sellPrice: 20
   brokenModel: {fileID: 919132149155446097, guid: c6b7445809f6415e99fa8d55e7971761, type: 3}
   emptyModel: {fileID: 0}
   goodModel: {fileID: 0}
@@ -40855,7 +40786,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &2067180736
 RectTransform:
   m_ObjectHideFlags: 0
@@ -40874,8 +40805,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: 0, y: 2}
-  m_SizeDelta: {x: 0, y: 150}
+  m_AnchoredPosition: {x: 0, y: 32.061}
+  m_SizeDelta: {x: -64.2723, y: 124}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &2067180737
 MonoBehaviour:
@@ -41296,7 +41227,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BusSeat
   currentState: 1
   currentLevel: 0
-  sellPrice: 50
+  sellPrice: 20
   brokenModel: {fileID: 919132149155446097, guid: c6b7445809f6415e99fa8d55e7971761, type: 3}
   emptyModel: {fileID: 0}
   goodModel: {fileID: 0}
@@ -41882,7 +41813,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 900
+  m_text: 350
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: e5d28cb6b90928d48a5f31bb780538c5, type: 2}
   m_sharedMaterial: {fileID: -6020180202787639182, guid: e5d28cb6b90928d48a5f31bb780538c5, type: 2}
@@ -42297,7 +42228,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BusSeat
   currentState: 1
   currentLevel: 0
-  sellPrice: 50
+  sellPrice: 20
   brokenModel: {fileID: 919132149155446097, guid: c6b7445809f6415e99fa8d55e7971761, type: 3}
   emptyModel: {fileID: 0}
   goodModel: {fileID: 0}
@@ -42391,7 +42322,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 450
+  m_text: 180
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: e5d28cb6b90928d48a5f31bb780538c5, type: 2}
   m_sharedMaterial: {fileID: -6020180202787639182, guid: e5d28cb6b90928d48a5f31bb780538c5, type: 2}

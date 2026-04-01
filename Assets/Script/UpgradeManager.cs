@@ -17,18 +17,19 @@ public class UpgradeManager : MonoBehaviour
     public string toggleHotkeyLabel = "B";
 
     [Header("=== 1. อัปเกรดเครื่องยนต์ (Engine - เพิ่มความเร็ว) ===")]
-    public int engineUpgradeCost = 300;
+    public int engineUpgradeCost = 160;
     public float engineSpeedIncreaseAmount = 2f;
     public TextMeshProUGUI txtEngineCost;
 
-    [Header("=== 2. อัปเกรดถังน้ำมัน (Fuel - ลดค่าน้ำมันรายวัน) ===")]
-    public int fuelUpgradeCost = 300;
-    public int gasReductionAmount = 50;
+    [Header("=== 2. Fuel Upgrade (Increase Stops Per Day) ===")]
+    public int fuelUpgradeCost = 140;
+    public int stopIncreasePerFuelUpgrade = 1;
+    public int maxStopsPerDay = 8;
     public TextMeshProUGUI txtFuelCost;
 
     [Header("=== 3. อัปเกรดเบาะนั่ง (Seat - เพิ่มความนิยม) ===")]
-    public int seatUpgradeCost = 300;
-    public float popularityBoost = 15f;
+    public int seatUpgradeCost = 220;
+    public float popularityBoost = 5f;
     public TextMeshProUGUI txtSeatCost;
 
     void Awake()
@@ -97,7 +98,7 @@ public class UpgradeManager : MonoBehaviour
         RefreshMoneyLabels();
 
         if (txtEngineCost) txtEngineCost.text = $"{engineUpgradeCost}";
-        if (txtFuelCost) txtFuelCost.text = $"{fuelUpgradeCost}";
+        if (txtFuelCost) txtFuelCost.text = CanBuyFuelUpgrade() ? $"{fuelUpgradeCost}" : "MAX";
         if (txtSeatCost) txtSeatCost.text = $"{seatUpgradeCost}";
     }
 
@@ -109,6 +110,11 @@ public class UpgradeManager : MonoBehaviour
         fuelUpgradeCost = data.fuelUpgradeCost;
         seatUpgradeCost = data.seatUpgradeCost;
         UpdateUI();
+    }
+
+    bool CanBuyFuelUpgrade()
+    {
+        return GameManager.Instance == null || GameManager.Instance.stopsPerDay < maxStopsPerDay;
     }
 
     public void BuyEngineUpgrade()
@@ -131,7 +137,7 @@ public class UpgradeManager : MonoBehaviour
 
             Debug.Log($"อัปเกรดเครื่องยนต์สำเร็จ! ความเร็วโบนัสรวม +{totalEngineBonus}");
 
-            engineUpgradeCost += 500;
+            engineUpgradeCost += 200;
             UpdateUI();
             SaveSystem.SaveCurrentGame();
         }
@@ -139,17 +145,20 @@ public class UpgradeManager : MonoBehaviour
 
     public void BuyFuelUpgrade()
     {
+        if (!CanBuyFuelUpgrade())
+            return;
+
         if (PlayerWallet.Instance != null && PlayerWallet.Instance.currentMoney >= fuelUpgradeCost)
         {
             if (!PlayerWallet.Instance.SpendMoney(fuelUpgradeCost))
                 return;
 
             if (GameManager.Instance != null)
-                GameManager.Instance.dailyGasCost = Mathf.Max(0, GameManager.Instance.dailyGasCost - gasReductionAmount);
+                GameManager.Instance.stopsPerDay = Mathf.Min(maxStopsPerDay, GameManager.Instance.stopsPerDay + stopIncreasePerFuelUpgrade);
 
-            fuelUpgradeCost += 500;
+            fuelUpgradeCost += 180;
             UpdateUI();
-            Debug.Log("อัปเกรดถังน้ำมันสำเร็จ! ค่าน้ำมันถูกลงแล้ว");
+            Debug.Log($"Fuel upgrade purchased! Daily route limit is now {GameManager.Instance.stopsPerDay} stops.");
             SaveSystem.SaveCurrentGame();
         }
     }
@@ -167,12 +176,11 @@ public class UpgradeManager : MonoBehaviour
 
                 if (GameManager.Instance.busRateDisplay != null)
                 {
-                    float finalPop = Mathf.Clamp(GameManager.Instance.popularity + GameManager.Instance.permanentPopularityBonus, 0f, 100f);
-                    GameManager.Instance.busRateDisplay.UpdateBusRate(finalPop / 20f);
+                    GameManager.Instance.busRateDisplay.UpdateBusRate(GameManager.Instance.GetStarRating());
                 }
             }
 
-            seatUpgradeCost += 500;
+            seatUpgradeCost += 200;
             UpdateUI();
             Debug.Log($"อัปเกรดเบาะสำเร็จ! ได้โบนัสถาวร +{popularityBoost}%");
             SaveSystem.SaveCurrentGame();
