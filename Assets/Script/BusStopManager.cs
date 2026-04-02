@@ -15,9 +15,6 @@ public class BusStopManager : MonoBehaviour
     [Header("Seat Points")]
     public Transform[] seatPoints;
 
-    [Header("Stand Points")]
-    public Transform[] standPoints;
-
     [Header("Popularity Spawn Settings")]
     public int maxPeoplePerStop = 5;
 
@@ -37,7 +34,6 @@ public class BusStopManager : MonoBehaviour
     // ==========================
 
     private HashSet<Transform> occupiedSeats = new HashSet<Transform>();
-    private HashSet<Transform> occupiedStandPoints = new HashSet<Transform>();
 
     private Queue<PassengerAI> passengerQueue = new Queue<PassengerAI>();
 
@@ -56,7 +52,6 @@ public class BusStopManager : MonoBehaviour
         StopAllCoroutines();
         passengerQueue.Clear();
         occupiedSeats.Clear();
-        occupiedStandPoints.Clear();
         isBoarding = false;
     }
 
@@ -92,13 +87,6 @@ public class BusStopManager : MonoBehaviour
             return null;
 
         Transform targetPoint = GetAvailableSeat();
-        bool isSitting = true;
-
-        if (targetPoint == null)
-        {
-            targetPoint = GetAvailableStandPoint();
-            isSitting = false;
-        }
 
         if (targetPoint == null)
         {
@@ -121,29 +109,17 @@ public class BusStopManager : MonoBehaviour
             ai.cityManager = cityManager;
             ai.SetSeat(targetPoint);
             ai.exitPoint = exitPoint;
-            ai.isSittingSeat = isSitting;
+            ai.isSittingSeat = true;
 
             if (GameManager.Instance != null)
                 GameManager.Instance.AddPassenger();
 
-            if (isSitting)
-            {
-                occupiedSeats.Add(targetPoint);
+            occupiedSeats.Add(targetPoint);
 
-                ai.onExitBus += () =>
-                {
-                    FreeSeat(targetPoint);
-                };
-            }
-            else
+            ai.onExitBus += () =>
             {
-                occupiedStandPoints.Add(targetPoint);
-
-                ai.onExitBus += () =>
-                {
-                    FreeStandPoint(targetPoint);
-                };
-            }
+                FreeSeat(targetPoint);
+            };
 
             ai.WaitAtStop(spawnPos, spawnPoint.rotation, spawnPoint);
         }
@@ -218,27 +194,6 @@ public class BusStopManager : MonoBehaviour
     }
 
     // ==========================
-    // Stand System
-    // ==========================
-    Transform GetAvailableStandPoint()
-    {
-        List<Transform> available = new List<Transform>();
-
-        foreach (Transform t in standPoints)
-        {
-            if (t != null && !occupiedStandPoints.Contains(t))
-            {
-                available.Add(t);
-            }
-        }
-
-        if (available.Count == 0)
-            return null;
-
-        return available[Random.Range(0, available.Count)];
-    }
-
-    // ==========================
     // Free Seat
     // ==========================
     public void FreeSeat(Transform seat)
@@ -246,17 +201,6 @@ public class BusStopManager : MonoBehaviour
         if (seat != null && occupiedSeats.Contains(seat))
         {
             occupiedSeats.Remove(seat);
-        }
-    }
-
-    // ==========================
-    // Free Stand Point
-    // ==========================
-    public void FreeStandPoint(Transform spot)
-    {
-        if (spot != null && occupiedStandPoints.Contains(spot))
-        {
-            occupiedStandPoints.Remove(spot);
         }
     }
 

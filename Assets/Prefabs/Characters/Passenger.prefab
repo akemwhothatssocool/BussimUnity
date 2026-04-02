@@ -15150,7 +15150,7 @@ MonoBehaviour:
   loudPhoneTiltAmplitude: 9
   eventAnimationSpeed: 4.2
   randomEventAudioSource: {fileID: 0}
-  drunkDanceAudioClip: {fileID: 0}
+  drunkDanceAudioClip: {fileID: 8300000, guid: 3a303f3751fb75e4ca46342e1e9f9dd2, type: 3}
   loudPhoneAudioClip: {fileID: 0}
   randomEventAudioVolume: 0.85
   loopRandomEventAudio: 1

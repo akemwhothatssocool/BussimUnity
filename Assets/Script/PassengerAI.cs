@@ -142,6 +142,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
         UpdateAnimationSpeed();
         UpdateMoodOverTime();
         UpdateRandomEventMotion();
+        RecoverStalledPaymentState();
     }
 
     // ===============================
@@ -324,6 +325,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
         if (fareSystem != null) fareSystem.StartTransaction(this);
         yield return new WaitForSeconds(1.0f);
         isProcessingPayment = false;
+        RecoverStalledPaymentState();
     }
 
     /// <summary>
@@ -372,6 +374,11 @@ public class PassengerAI : MonoBehaviour, IInteractable
             agent.enabled = true;
             yield return null;
 
+            if (!RestoreAgentToNavMesh())
+            {
+                Debug.LogWarning($"{gameObject.name}: Could not restore passenger to NavMesh before exiting.");
+            }
+
             if (agent.isOnNavMesh && exitPoint != null)
             {
                 agent.isStopped = false;
@@ -391,6 +398,26 @@ public class PassengerAI : MonoBehaviour, IInteractable
         onExitBus?.Invoke();
         onExitBus = null;
         Destroy(gameObject);
+    }
+
+    bool RestoreAgentToNavMesh()
+    {
+        if (agent == null || !agent.enabled)
+            return false;
+
+        Vector3[] candidates = mySeatPoint != null
+            ? new[] { transform.position, mySeatPoint.position }
+            : new[] { transform.position };
+
+        for (int i = 0; i < candidates.Length; i++)
+        {
+            if (NavMesh.SamplePosition(candidates[i], out NavMeshHit hit, 1.5f, NavMesh.AllAreas))
+            {
+                return agent.Warp(hit.position);
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -550,6 +577,31 @@ public class PassengerAI : MonoBehaviour, IInteractable
             return;
 
         FinishRandomEvent(true);
+    }
+
+    void RecoverStalledPaymentState()
+    {
+        if (currentState != State.Paying || hasPaidTicket || isProcessingPayment)
+            return;
+
+        bool hasOwnActiveTransaction = fareSystem != null &&
+                                       fareSystem.currentPassenger == this &&
+                                       fareSystem.HasActiveTransaction();
+        if (hasOwnActiveTransaction)
+            return;
+
+        currentState = State.WaitingForFare;
+
+        if (animator != null)
+        {
+            if (isSittingSeat)
+                animator.SetTrigger(isRightSide ? "trigSitDoneR" : "trigSitDoneL");
+            else
+                animator.SetTrigger("trigStandDone");
+        }
+
+        if (moneyProp != null)
+            moneyProp.SetActive(false);
     }
 
     void CaptureSeatPose()

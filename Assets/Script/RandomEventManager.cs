@@ -43,6 +43,12 @@ public class RandomEventManager : MonoBehaviour
         if (Time.timeScale <= 0f)
             return;
 
+        if (activeEventType != PassengerAI.RandomEventType.None && activePassenger == null)
+        {
+            ClearActiveEvent(false);
+            return;
+        }
+
         if (activePassenger != null)
         {
             UpdateActiveEvent();

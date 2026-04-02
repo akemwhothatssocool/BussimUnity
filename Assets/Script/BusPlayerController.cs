@@ -55,6 +55,7 @@ public class BusPlayerController : MonoBehaviour
     public Vector3 carriedItemLocalEuler = new Vector3(10f, -18f, 6f);
 
     CharacterController controller;
+    FareSystem fareSystem;
     float lastBusSpeed;
     Vector3 inertiaVelocity;
     float xRotation = 0f;
@@ -68,6 +69,7 @@ public class BusPlayerController : MonoBehaviour
     void Start()
     {
         controller = GetComponent<CharacterController>();
+        fareSystem = FindFirstObjectByType<FareSystem>();
         EnsureCarryAnchor();
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -159,7 +161,16 @@ public class BusPlayerController : MonoBehaviour
 
     void HandleInteraction()
     {
-        if (isTransactionActive) return;
+        if (isTransactionActive)
+        {
+            if (fareSystem == null)
+                fareSystem = FindFirstObjectByType<FareSystem>();
+
+            if (fareSystem == null || !fareSystem.HasActiveTransaction())
+                ResetInteraction();
+            else
+                return;
+        }
 
         bool foundInteractable = false;
 
@@ -171,7 +182,8 @@ public class BusPlayerController : MonoBehaviour
 
             if (Input.GetKeyDown(KeyCode.E))
             {
-                bool shouldLockInteraction = interactable is PassengerAI;
+                PassengerAI passenger = interactable as PassengerAI;
+                bool shouldLockInteraction = passenger != null && !passenger.CanResolveRandomEvent();
                 isTransactionActive = shouldLockInteraction;
 
                 if (interactPromptUI != null)

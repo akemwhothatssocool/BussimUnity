@@ -34,8 +34,21 @@ public class FareSystem : MonoBehaviour
     private bool waitingForCollection = false;
     private int npcPlannedPayment = 0;
     private bool isProcessingSubmit = false;
+    private bool completionAnimationTriggered = false;
 
     public bool IsBusy => waitingForCollection || isTransactionActive || isProcessingSubmit;
+    public bool HasActiveTransaction()
+    {
+        if (currentPassenger == null)
+            return false;
+
+        return waitingForCollection || isTransactionActive || isProcessingSubmit || moneyReceived > 0 || currentChange > 0 || npcPlannedPayment > 0;
+    }
+
+    bool HasStaleTransactionState()
+    {
+        return currentPassenger == null && (waitingForCollection || isTransactionActive || isProcessingSubmit);
+    }
 
     [Header("=== 5. ข้อมูล NPC & Player ===")]
     public PassengerAI currentPassenger;
@@ -82,6 +95,12 @@ public class FareSystem : MonoBehaviour
 
     void Update()
     {
+        if (HasStaleTransactionState())
+        {
+            ForceResetSystem();
+            return;
+        }
+
         if (waitingForCollection)
         {
             if (Input.GetMouseButtonDown(0))
@@ -116,6 +135,7 @@ public class FareSystem : MonoBehaviour
         moneyReceived = 0;
         currentChange = 0;
         npcPlannedPayment = 0;
+        completionAnimationTriggered = false;
 
         TogglePaymentUI(false);
         AnimateHand(false);
@@ -275,6 +295,7 @@ IEnumerator ShowResultAndClose(int diff)
     {
         if (GameManager.Instance != null) GameManager.Instance.AdjustPopularity(2f);
         PlayStatusSound(sfxSuccess);
+        TriggerCompletionAnimation();
         textStatus.text = successQuotes[Random.Range(0, successQuotes.Length)];
         textStatus.color = Color.green;
         yield return new WaitForSeconds(1.8f);
@@ -294,6 +315,7 @@ IEnumerator ShowResultAndClose(int diff)
     {
         if (GameManager.Instance != null) GameManager.Instance.AdjustPopularity(5f);
         PlayStatusSound(sfxFailOver);
+        TriggerCompletionAnimation();
         textStatus.text = failOverQuotes[Random.Range(0, failOverQuotes.Length)];
         textStatus.color = Color.yellow;
         yield return new WaitForSeconds(2.5f);
@@ -319,14 +341,20 @@ IEnumerator ShowResultAndClose(int diff)
         }
 
         // 🌟 2. สั่งเล่นแอนิเมชันเก็บมือ
-        if (npcAnimator != null)
-        {
-            string trig = (currentPoseState == 0) ? "trigStandDone" : (currentPoseState == 1 ? "trigSitDoneL" : "trigSitDoneR");
-            npcAnimator.SetTrigger(trig);
-        }
+        TriggerCompletionAnimation();
 
         // 🌟 3. ล้างความจำและเคลียร์ระบบทั้งหมด
         ForceResetSystem();
+    }
+
+    void TriggerCompletionAnimation()
+    {
+        if (completionAnimationTriggered || npcAnimator == null)
+            return;
+
+        string trig = (currentPoseState == 0) ? "trigStandDone" : (currentPoseState == 1 ? "trigSitDoneL" : "trigSitDoneR");
+        npcAnimator.SetTrigger(trig);
+        completionAnimationTriggered = true;
     }
 
     void PlayMoneySound(int amount)
@@ -349,7 +377,6 @@ IEnumerator ShowResultAndClose(int diff)
         if (textPrice != null) textPrice.text = currentTicket.price + " ฿";
         if (textReceived != null) textReceived.text = moneyReceived + " ฿";
         if (textChange != null) textChange.text = currentChange + " ฿";
-        UpdateTransactionHelperText();
     }
 
     void ResetTextDisplay()
@@ -365,16 +392,6 @@ IEnumerator ShowResultAndClose(int diff)
     int GetAvailableWalletMoney()
     {
         return PlayerWallet.Instance != null ? Mathf.Max(0, PlayerWallet.Instance.currentMoney) : 0;
-    }
-
-    void UpdateTransactionHelperText()
-    {
-        if (textStatus == null || !isTransactionActive || isProcessingSubmit) return;
-
-        int availableWallet = GetAvailableWalletMoney();
-        int remainingAfterSelection = Mathf.Max(0, availableWallet - currentChange);
-        textStatus.text = $"เงินสดสำหรับทอน: {availableWallet} ฿ | เหลือหลังเลือก: {remainingAfterSelection} ฿";
-        textStatus.color = Color.white;
     }
 
     Transform GetCurrentMoneyHand()

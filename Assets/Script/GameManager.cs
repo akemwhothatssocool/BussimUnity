@@ -130,6 +130,12 @@ public class GameManager : MonoBehaviour
         SaveSystem.SaveCurrentGame();
     }
 
+    public float GetStarRating()
+    {
+        float finalPopularity = Mathf.Clamp(popularity + permanentPopularityBonus, 0f, 100f);
+        return finalPopularity / 20f;
+    }
+
     // ==========================================
     // 🌟 จบวัน: สรุปยอด และ อัปเดต UI แบบจัดเต็ม
     // ==========================================
@@ -177,8 +183,7 @@ public class GameManager : MonoBehaviour
         // อัปเดตดาว
         if (busRateDisplay != null)
         {
-            float finalPopularity = Mathf.Clamp(popularity + permanentPopularityBonus, 0f, 100f);
-            float starRating = finalPopularity / 20f;
+            float starRating = GetStarRating();
             busRateDisplay.UpdateBusRate(starRating);
             Debug.Log($"⭐ BusRate: {starRating} ดาว (คะแนนดิบ: {popularity}% + โบนัสเบาะ: {permanentPopularityBonus}%)");
         }
@@ -293,8 +298,7 @@ public class GameManager : MonoBehaviour
 
         if (busRateDisplay != null)
         {
-            float finalPopularity = Mathf.Clamp(popularity + permanentPopularityBonus, 0f, 100f);
-            busRateDisplay.UpdateBusRate(finalPopularity / 20f);
+            busRateDisplay.UpdateBusRate(GetStarRating());
         }
     }
 
