@@ -9,6 +9,7 @@ public class SeatDeliveryManager : MonoBehaviour
     public Transform deliveryDropPoint;
     public Vector3 deliveryDropOffset = new Vector3(0f, 2.4f, 1.6f);
     public Vector3 crateSize = new Vector3(0.5f, 0.42f, 0.68f);
+    public float dropSpacePadding = 0.08f;
 
     SeatDeliveryCrate activeCrate;
 
@@ -80,10 +81,18 @@ public class SeatDeliveryManager : MonoBehaviour
             return false;
         }
 
-        SpawnDeliveryCrate(level, GetDropPosition(), GetDropRotation());
+        BusPlayerController player = Object.FindFirstObjectByType<BusPlayerController>();
+        bool foundReachableDropPose = TryGetReachableDropPose(player, out Vector3 dropPosition, out Quaternion dropRotation);
+        SeatDeliveryCrate crate = SpawnDeliveryCrate(level, dropPosition, dropRotation);
+
+        if (!foundReachableDropPose && crate != null && player != null && !player.IsCarryingSeatPackage())
+            TryPickUpCrate(crate, player);
+
         SaveSystem.SaveCurrentGame();
 
-        feedback = $"<color=green>สั่งเก้าอี้ Lv.{level} แล้ว กล่องกำลังลงมาบนรถ รีบไปหยิบมาติดตั้ง</color>";
+        feedback = foundReachableDropPose
+            ? $"<color=green>สั่งเก้าอี้ Lv.{level} แล้ว กล่องถูกวางไว้ใกล้ตัวแล้ว รีบไปหยิบมาติดตั้ง</color>"
+            : $"<color=green>สั่งเก้าอี้ Lv.{level} แล้ว พื้นที่ตรงนั้นแคบ ระบบเลยส่งกล่องเข้ามือให้แทน</color>";
         return true;
     }
 
@@ -202,11 +211,103 @@ public class SeatDeliveryManager : MonoBehaviour
         Rigidbody crateBody = crateObject.AddComponent<Rigidbody>();
         crateBody.mass = 2.2f;
         crateBody.angularDamping = 3.5f;
+        crateBody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 
         SeatDeliveryCrate crate = crateObject.AddComponent<SeatDeliveryCrate>();
         crate.Setup(level);
         activeCrate = crate;
         return crate;
+    }
+
+    bool TryGetReachableDropPose(BusPlayerController player, out Vector3 position, out Quaternion rotation)
+    {
+        Transform dropAnchor = deliveryDropPoint;
+        if (dropAnchor != null)
+        {
+            rotation = Quaternion.Euler(0f, dropAnchor.eulerAngles.y, 0f);
+            position = dropAnchor.position + dropAnchor.TransformVector(deliveryDropOffset);
+            if (IsDropSpaceClear(position, rotation, player))
+                return true;
+        }
+
+        if (player != null && TryGetPlayerAdjacentDropPose(player, out position, out rotation))
+            return true;
+
+        rotation = GetDropRotation();
+        position = GetDropPosition();
+        return false;
+    }
+
+    bool TryGetPlayerAdjacentDropPose(BusPlayerController player, out Vector3 position, out Quaternion rotation)
+    {
+        position = Vector3.zero;
+        rotation = Quaternion.identity;
+        if (player == null)
+            return false;
+
+        Transform anchor = player.transform;
+        rotation = Quaternion.Euler(0f, anchor.eulerAngles.y, 0f);
+        float floorHeight = Mathf.Max((crateSize.y * 0.5f) + dropSpacePadding, 0.35f);
+        Vector3 basePosition = anchor.position + Vector3.up * floorHeight;
+        Vector3 forward = Vector3.ProjectOnPlane(anchor.forward, Vector3.up).normalized;
+        Vector3 right = Vector3.ProjectOnPlane(anchor.right, Vector3.up).normalized;
+
+        if (forward.sqrMagnitude < 0.001f)
+            forward = Vector3.forward;
+
+        if (right.sqrMagnitude < 0.001f)
+            right = Vector3.right;
+
+        Vector3[] candidateOffsets =
+        {
+            anchor.TransformVector(deliveryDropOffset),
+            (forward * 1.1f) + (Vector3.up * 1.25f),
+            (-forward * 0.95f),
+            (right * 0.95f),
+            (-right * 0.95f),
+            ((-forward + right * 0.35f).normalized * 0.95f),
+            ((-forward - right * 0.35f).normalized * 0.95f),
+            Vector3.zero
+        };
+
+        for (int i = 0; i < candidateOffsets.Length; i++)
+        {
+            Vector3 candidate = i < 2
+                ? anchor.position + candidateOffsets[i]
+                : basePosition + candidateOffsets[i];
+
+            if (!IsDropSpaceClear(candidate, rotation, player))
+                continue;
+
+            position = candidate;
+            return true;
+        }
+
+        position = basePosition;
+        return false;
+    }
+
+    bool IsDropSpaceClear(Vector3 position, Quaternion rotation, BusPlayerController player)
+    {
+        Vector3 halfExtents = (crateSize * 0.5f) + Vector3.one * dropSpacePadding;
+        Collider[] overlaps = Physics.OverlapBox(position, halfExtents, rotation, ~0, QueryTriggerInteraction.Ignore);
+        if (overlaps == null || overlaps.Length == 0)
+            return true;
+
+        Transform playerRoot = player != null ? player.transform : null;
+        for (int i = 0; i < overlaps.Length; i++)
+        {
+            Collider overlap = overlaps[i];
+            if (overlap == null)
+                continue;
+
+            if (playerRoot != null && overlap.transform.IsChildOf(playerRoot))
+                continue;
+
+            return false;
+        }
+
+        return true;
     }
 
     Vector3 GetDropPosition()
