@@ -5,6 +5,8 @@ using System;
 
 public class PassengerAI : MonoBehaviour, IInteractable
 {
+    const string ToxicVfxObjectName = "ToxicSmoke";
+
     public enum State { Boarding, FindingSeat, Seated, WaitingForFare, HandExtended, Paying, Riding, Exiting }
     public enum RandomEventType { None, ToxicSmell, DrunkDance, LoudPhone }
     public State currentState = State.Boarding;
@@ -131,8 +133,8 @@ public class PassengerAI : MonoBehaviour, IInteractable
             agent.stoppingDistance = 0.3f;
         }
 
-        if (toxicVFX != null)
-            toxicVFX.SetActive(isToxic);
+        ResolveToxicVfxReference();
+        ApplyToxicVfxState();
 
         EnsureRandomEventAudioSource();
     }
@@ -152,8 +154,67 @@ public class PassengerAI : MonoBehaviour, IInteractable
     public void SetToxicState(bool state)
     {
         isToxic = state;
+        ApplyToxicVfxState();
+    }
+
+    void ResolveToxicVfxReference()
+    {
         if (toxicVFX != null)
-            toxicVFX.SetActive(isToxic);
+            return;
+
+        Transform toxicTransform = FindChildRecursive(transform, ToxicVfxObjectName);
+        if (toxicTransform != null)
+            toxicVFX = toxicTransform.gameObject;
+    }
+
+    void ApplyToxicVfxState()
+    {
+        ResolveToxicVfxReference();
+        if (toxicVFX == null)
+            return;
+
+        ParticleSystem[] particleSystems = toxicVFX.GetComponentsInChildren<ParticleSystem>(true);
+        if (isToxic)
+        {
+            if (!toxicVFX.activeSelf)
+                toxicVFX.SetActive(true);
+
+            for (int i = 0; i < particleSystems.Length; i++)
+            {
+                if (particleSystems[i] != null)
+                    particleSystems[i].Play(true);
+            }
+
+            return;
+        }
+
+        for (int i = 0; i < particleSystems.Length; i++)
+        {
+            if (particleSystems[i] != null)
+                particleSystems[i].Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+
+        if (toxicVFX.activeSelf)
+            toxicVFX.SetActive(false);
+    }
+
+    Transform FindChildRecursive(Transform parent, string childName)
+    {
+        if (parent == null || string.IsNullOrWhiteSpace(childName))
+            return null;
+
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            Transform child = parent.GetChild(i);
+            if (child.name == childName)
+                return child;
+
+            Transform nestedChild = FindChildRecursive(child, childName);
+            if (nestedChild != null)
+                return nestedChild;
+        }
+
+        return null;
     }
 
     // ===============================

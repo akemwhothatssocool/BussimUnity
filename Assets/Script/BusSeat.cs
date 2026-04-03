@@ -4,6 +4,10 @@ using UnityEngine;
 public class BusSeat : MonoBehaviour, IInteractable
 {
     public const int MaxSupportedSeatLevel = 3;
+    const string RepairClipResourcePath = "Sound/repair";
+    const float RepairClipStartOffset = 0.053f;
+
+    static AudioClip cachedRepairClip;
 
     public enum SeatState { Broken, Empty, Usable }
     public enum SeatLevel { None = 0, Lv1 = 1, Lv2 = 2, Lv3 = 3 }
@@ -14,6 +18,7 @@ public class BusSeat : MonoBehaviour, IInteractable
 
     [Header("ราคา")]
     public int sellPrice = 20;
+    [SerializeField] float repairSoundVolume = 0.54f;
 
     [Header("โมเดลแต่ละสถานะ")]
     public GameObject brokenModel;
@@ -75,6 +80,7 @@ public class BusSeat : MonoBehaviour, IInteractable
         if (!PlayerWallet.Instance.SpendMoney(sellPrice))
             return;
 
+        PlayRepairSound();
         currentState = SeatState.Empty;
         currentLevel = SeatLevel.None;
         UpdateVisuals();
@@ -90,6 +96,51 @@ public class BusSeat : MonoBehaviour, IInteractable
         currentLevel = ClampLevel(level);
         UpdateVisuals();
         SaveSystem.SaveCurrentGame();
+    }
+
+    void PlayRepairSound()
+    {
+        AudioClip clip = GetRepairClip();
+        if (clip == null)
+            return;
+
+        PlayClipAtPoint(clip, transform.position + (Vector3.up * 0.35f), repairSoundVolume, RepairClipStartOffset);
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void PrewarmRepairClip()
+    {
+        GetRepairClip();
+    }
+
+    static AudioClip GetRepairClip()
+    {
+        if (cachedRepairClip == null)
+            cachedRepairClip = Resources.Load<AudioClip>(RepairClipResourcePath);
+
+        if (cachedRepairClip != null && !cachedRepairClip.preloadAudioData && !cachedRepairClip.loadState.Equals(AudioDataLoadState.Loaded))
+            cachedRepairClip.LoadAudioData();
+
+        return cachedRepairClip;
+    }
+
+    static void PlayClipAtPoint(AudioClip clip, Vector3 position, float volume, float startTime)
+    {
+        if (clip == null)
+            return;
+
+        GameObject tempAudioObject = new GameObject("TempRepairAudio");
+        tempAudioObject.transform.position = position;
+
+        AudioSource audioSource = tempAudioObject.AddComponent<AudioSource>();
+        audioSource.clip = clip;
+        audioSource.spatialBlend = 1f;
+        audioSource.volume = volume;
+        audioSource.playOnAwake = false;
+        audioSource.time = Mathf.Clamp(startTime, 0f, Mathf.Max(clip.length - 0.01f, 0f));
+        audioSource.Play();
+
+        Object.Destroy(tempAudioObject, Mathf.Max(clip.length - audioSource.time, 0.1f) + 0.1f);
     }
 
     public bool IsUsableForPassengers()

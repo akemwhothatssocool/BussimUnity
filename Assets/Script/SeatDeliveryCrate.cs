@@ -2,10 +2,17 @@ using UnityEngine;
 
 public class SeatDeliveryCrate : MonoBehaviour, IInteractable
 {
+    const string BoxDropClipResourcePath = "Sound/BoxDrop";
+
+    static AudioClip cachedBoxDropClip;
     public int seatLevel = 1;
+    [SerializeField] float boxDropVolume = 0.57f;
+    [SerializeField] float minDropImpactSpeed = 0.55f;
 
     Rigidbody crateBody;
     Collider crateCollider;
+    bool playDropSoundOnNextCollision;
+    bool hasPlayedDropSound;
 
     void Awake()
     {
@@ -17,6 +24,12 @@ public class SeatDeliveryCrate : MonoBehaviour, IInteractable
     {
         seatLevel = Mathf.Clamp(level, 1, 3);
         name = $"SeatDeliveryCrate_Lv{seatLevel}";
+    }
+
+    public void ArmDropSound()
+    {
+        playDropSoundOnNextCollision = true;
+        hasPlayedDropSound = false;
     }
 
     public bool CanInteract()
@@ -58,6 +71,44 @@ public class SeatDeliveryCrate : MonoBehaviour, IInteractable
 
         int ignoreRaycastLayer = LayerMask.NameToLayer("Ignore Raycast");
         gameObject.layer = ignoreRaycastLayer >= 0 && carried ? ignoreRaycastLayer : 0;
+
+        if (carried)
+            playDropSoundOnNextCollision = false;
+    }
+
+    void OnCollisionEnter(Collision collision)
+    {
+        if (!playDropSoundOnNextCollision || hasPlayedDropSound)
+            return;
+
+        if (collision == null || collision.relativeVelocity.magnitude < minDropImpactSpeed)
+            return;
+
+        AudioClip clip = GetBoxDropClip();
+        if (clip == null)
+            return;
+
+        Vector3 soundPosition = collision.contactCount > 0 ? collision.GetContact(0).point : transform.position;
+        AudioSource.PlayClipAtPoint(clip, soundPosition, boxDropVolume);
+        hasPlayedDropSound = true;
+        playDropSoundOnNextCollision = false;
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void PrewarmBoxDropClip()
+    {
+        GetBoxDropClip();
+    }
+
+    static AudioClip GetBoxDropClip()
+    {
+        if (cachedBoxDropClip == null)
+            cachedBoxDropClip = Resources.Load<AudioClip>(BoxDropClipResourcePath);
+
+        if (cachedBoxDropClip != null && !cachedBoxDropClip.preloadAudioData && !cachedBoxDropClip.loadState.Equals(AudioDataLoadState.Loaded))
+            cachedBoxDropClip.LoadAudioData();
+
+        return cachedBoxDropClip;
     }
 
     void OnDestroy()

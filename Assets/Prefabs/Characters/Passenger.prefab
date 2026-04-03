@@ -15143,7 +15143,7 @@ MonoBehaviour:
   isRightSide: 0
   cityManager: {fileID: 0}
   isToxic: 0
-  toxicVFX: {fileID: 0}
+  toxicVFX: {fileID: 2792423729294063944}
   activeRandomEvent: 0
   drunkDanceYawAmplitude: 15
   drunkDanceBobAmplitude: 0.035

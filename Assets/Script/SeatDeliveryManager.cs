@@ -83,7 +83,7 @@ public class SeatDeliveryManager : MonoBehaviour
 
         BusPlayerController player = Object.FindFirstObjectByType<BusPlayerController>();
         bool foundReachableDropPose = TryGetReachableDropPose(player, out Vector3 dropPosition, out Quaternion dropRotation);
-        SeatDeliveryCrate crate = SpawnDeliveryCrate(level, dropPosition, dropRotation);
+        SeatDeliveryCrate crate = SpawnDeliveryCrate(level, dropPosition, dropRotation, true);
 
         if (!foundReachableDropPose && crate != null && player != null && !player.IsCarryingSeatPackage())
             TryPickUpCrate(crate, player);
@@ -154,7 +154,8 @@ public class SeatDeliveryManager : MonoBehaviour
             SpawnDeliveryCrate(
                 data.pendingSeatDeliveryLevel,
                 data.pendingSeatDeliveryPosition,
-                Quaternion.Euler(data.pendingSeatDeliveryRotation));
+                Quaternion.Euler(data.pendingSeatDeliveryRotation),
+                false);
         }
 
         if (data.isCarryingSeatDelivery && data.carriedSeatDeliveryLevel > 0)
@@ -162,7 +163,8 @@ public class SeatDeliveryManager : MonoBehaviour
             SeatDeliveryCrate carriedCrate = SpawnDeliveryCrate(
                 data.carriedSeatDeliveryLevel,
                 Vector3.zero,
-                Quaternion.identity);
+                Quaternion.identity,
+                false);
 
             BusPlayerController player = Object.FindFirstObjectByType<BusPlayerController>();
             if (player != null && carriedCrate != null)
@@ -195,7 +197,7 @@ public class SeatDeliveryManager : MonoBehaviour
             player.ClearCarriedSeatPackage();
     }
 
-    SeatDeliveryCrate SpawnDeliveryCrate(int level, Vector3 position, Quaternion rotation)
+    SeatDeliveryCrate SpawnDeliveryCrate(int level, Vector3 position, Quaternion rotation, bool armDropSound = false)
     {
         level = Mathf.Clamp(level, 1, BusSeat.MaxSupportedSeatLevel);
         GameObject crateObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -215,6 +217,8 @@ public class SeatDeliveryManager : MonoBehaviour
 
         SeatDeliveryCrate crate = crateObject.AddComponent<SeatDeliveryCrate>();
         crate.Setup(level);
+        if (armDropSound)
+            crate.ArmDropSound();
         activeCrate = crate;
         return crate;
     }
