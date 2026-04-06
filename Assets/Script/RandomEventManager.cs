@@ -4,6 +4,12 @@ public class RandomEventManager : MonoBehaviour
 {
     public static RandomEventManager Instance;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    [Header("Debug")]
+    public bool enableDebugHotkeys = true;
+    public KeyCode forceToxicHotkey = KeyCode.F7;
+#endif
+
     [Header("Timing")]
     public float minEventInterval = 30f;
     public float maxEventInterval = 60f;
@@ -43,6 +49,10 @@ public class RandomEventManager : MonoBehaviour
         if (Time.timeScale <= 0f)
             return;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        HandleDebugHotkeys();
+#endif
+
         if (activeEventType != PassengerAI.RandomEventType.None && activePassenger == null)
         {
             ClearActiveEvent(false);
@@ -58,6 +68,17 @@ public class RandomEventManager : MonoBehaviour
         if (Time.time >= nextEventTime)
             TryStartRandomEvent();
     }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    void HandleDebugHotkeys()
+    {
+        if (!enableDebugHotkeys)
+            return;
+
+        if (Input.GetKeyDown(forceToxicHotkey))
+            DebugForceEvent(PassengerAI.RandomEventType.ToxicSmell);
+    }
+#endif
 
     public static RandomEventManager GetOrCreateInstance()
     {
@@ -78,21 +99,7 @@ public class RandomEventManager : MonoBehaviour
 
     void TryStartRandomEvent()
     {
-        PassengerAI[] passengers = FindObjectsByType<PassengerAI>(FindObjectsSortMode.None);
-        if (passengers == null || passengers.Length == 0)
-        {
-            ScheduleNextEvent(10f, 18f);
-            return;
-        }
-
-        System.Collections.Generic.List<PassengerAI> candidates = new System.Collections.Generic.List<PassengerAI>(passengers.Length);
-        for (int i = 0; i < passengers.Length; i++)
-        {
-            PassengerAI passenger = passengers[i];
-            if (passenger != null && passenger.CanReceiveRandomEvent())
-                candidates.Add(passenger);
-        }
-
+        System.Collections.Generic.List<PassengerAI> candidates = GetEligiblePassengers();
         if (candidates.Count == 0)
         {
             ScheduleNextEvent(8f, 16f);
@@ -114,6 +121,91 @@ public class RandomEventManager : MonoBehaviour
         nextPenaltyTime = Time.time + penaltyTickInterval;
 
         Debug.Log($"Random event started: {activeEventType} on {activePassenger.name}");
+    }
+
+    System.Collections.Generic.List<PassengerAI> GetEligiblePassengers()
+    {
+        PassengerAI[] passengers = FindObjectsByType<PassengerAI>(FindObjectsSortMode.None);
+        System.Collections.Generic.List<PassengerAI> candidates = passengers == null
+            ? new System.Collections.Generic.List<PassengerAI>()
+            : new System.Collections.Generic.List<PassengerAI>(passengers.Length);
+
+        if (passengers == null || passengers.Length == 0)
+            return candidates;
+
+        for (int i = 0; i < passengers.Length; i++)
+        {
+            PassengerAI passenger = passengers[i];
+            if (passenger != null && passenger.CanReceiveRandomEvent())
+                candidates.Add(passenger);
+        }
+
+        return candidates;
+    }
+
+    public bool DebugForceEvent(PassengerAI.RandomEventType eventType)
+    {
+        if (eventType == PassengerAI.RandomEventType.None)
+            return false;
+
+        if (activePassenger != null)
+        {
+            Debug.LogWarning($"RandomEventManager: cannot force {eventType} because {activePassenger.name} already has {activeEventType}.");
+            return false;
+        }
+
+        System.Collections.Generic.List<PassengerAI> candidates = GetEligiblePassengers();
+        bool useDebugFallback = candidates.Count == 0;
+        if (useDebugFallback)
+            candidates = GetDebugEligiblePassengers();
+
+        if (candidates.Count == 0)
+        {
+            Debug.LogWarning($"RandomEventManager: no passenger available for forced event {eventType}. Put at least one passenger on the bus first.");
+            return false;
+        }
+
+        PassengerAI passengerTarget = candidates[Random.Range(0, candidates.Count)];
+        bool started = useDebugFallback
+            ? passengerTarget.DebugForceRandomEvent(eventType)
+            : passengerTarget.TryStartRandomEvent(eventType);
+
+        if (!started)
+        {
+            Debug.LogWarning($"RandomEventManager: failed to force {eventType} on {passengerTarget.name}.");
+            return false;
+        }
+
+        activePassenger = passengerTarget;
+        activeEventType = eventType;
+        activePassenger.onRandomEventFinished += HandleRandomEventFinished;
+        activeEventEndTime = Time.time + Random.Range(minEventDuration, maxEventDuration);
+        nextPenaltyTime = Time.time + penaltyTickInterval;
+
+        Debug.Log(useDebugFallback
+            ? $"RandomEventManager: forced {activeEventType} on {activePassenger.name} (debug fallback target)"
+            : $"RandomEventManager: forced {activeEventType} on {activePassenger.name}");
+        return true;
+    }
+
+    System.Collections.Generic.List<PassengerAI> GetDebugEligiblePassengers()
+    {
+        PassengerAI[] passengers = FindObjectsByType<PassengerAI>(FindObjectsSortMode.None);
+        System.Collections.Generic.List<PassengerAI> candidates = passengers == null
+            ? new System.Collections.Generic.List<PassengerAI>()
+            : new System.Collections.Generic.List<PassengerAI>(passengers.Length);
+
+        if (passengers == null || passengers.Length == 0)
+            return candidates;
+
+        for (int i = 0; i < passengers.Length; i++)
+        {
+            PassengerAI passenger = passengers[i];
+            if (passenger != null && passenger.CanDebugReceiveRandomEvent())
+                candidates.Add(passenger);
+        }
+
+        return candidates;
     }
 
     void UpdateActiveEvent()

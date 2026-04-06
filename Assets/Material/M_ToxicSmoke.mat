@@ -21,7 +21,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: M_ToxicSmoke
-  m_Shader: {fileID: -6465566751694194690, guid: 0e9748f3fa811e74d9f682228c68cf00, type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: 1140d24890c931d4bade2c12e880c7c6, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []

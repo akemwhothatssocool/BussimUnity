@@ -251,8 +251,8 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.8
-      minScalar: 0.4
+      scalar: 1.35
+      minScalar: 0.8
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -304,8 +304,8 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 3
-      minScalar: 2
+      scalar: 0.85
+      minScalar: 0.2
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -800,7 +800,7 @@ ParticleSystem:
     serializedVersion: 6
     enabled: 1
     type: 4
-    angle: 31.91
+    angle: 10
     length: 5
     boxThickness: {x: 0, y: 0, z: 0}
     radiusThickness: 1
@@ -886,7 +886,7 @@ ParticleSystem:
     sphericalDirectionAmount: 0
     randomPositionAmount: 0
     radius:
-      value: 0.5
+      value: 0.18
       mode: 0
       spread: 0
       speed:
@@ -1005,8 +1005,8 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 20
-      minScalar: 15
+      scalar: 12
+      minScalar: 8
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -1443,7 +1443,7 @@ ParticleSystem:
       maxColor: {r: 1, g: 1, b: 1, a: 1}
       maxGradient:
         serializedVersion: 2
-        key0: {r: 1, g: 1, b: 1, a: 1}
+        key0: {r: 1, g: 1, b: 1, a: 0.65}
         key1: {r: 1, g: 1, b: 1, a: 0}
         key2: {r: 0, g: 0, b: 0, a: 0}
         key3: {r: 0, g: 0, b: 0, a: 0}
@@ -2820,12 +2820,12 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
   NoiseModule:
-    enabled: 0
+    enabled: 1
     strength:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 1
-      minScalar: 1
+      scalar: 0.35
+      minScalar: 0.18
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -2877,8 +2877,8 @@ ParticleSystem:
     strengthY:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 1
-      minScalar: 1
+      scalar: 0.25
+      minScalar: 0.12
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -2930,8 +2930,8 @@ ParticleSystem:
     strengthZ:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 1
-      minScalar: 1
+      scalar: 0.35
+      minScalar: 0.18
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -2981,7 +2981,7 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     separateAxes: 0
-    frequency: 0.5
+    frequency: 0.22
     damping: 1
     octaves: 1
     octaveMultiplier: 0.5
@@ -2990,8 +2990,8 @@ ParticleSystem:
     scrollSpeed:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0
-      minScalar: 0
+      scalar: 0.18
+      minScalar: 0.18
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -15144,6 +15144,8 @@ MonoBehaviour:
   cityManager: {fileID: 0}
   isToxic: 0
   toxicVFX: {fileID: 2792423729294063944}
+  toxicVFXPrefab: {fileID: 4399551786179929035, guid: 7fc85e1ac1422414cab8b2b6ac7803b0, type: 3}
+  toxicVFXLocalOffset: {x: 0, y: 0.18, z: 0.14}
   activeRandomEvent: 0
   drunkDanceYawAmplitude: 15
   drunkDanceBobAmplitude: 0.035

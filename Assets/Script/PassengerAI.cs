@@ -72,6 +72,8 @@ public class PassengerAI : MonoBehaviour, IInteractable
     [Header("ระบบตัวเหม็น (Toxic)")]
     public bool isToxic = false;
     public GameObject toxicVFX;
+    [SerializeField] GameObject toxicVFXPrefab;
+    [SerializeField] Vector3 toxicVFXLocalOffset = new Vector3(0f, 0.18f, 0.14f);
 
     [Header("Events")]
     public Action onExitBus;
@@ -109,6 +111,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
     private Quaternion seatedBaseRotation;
     private bool hasSeatedBasePose = false;
     private bool isUsingDirectDrunkDanceState = false;
+    private GameObject runtimeToxicVFX;
 
     // ===============================
     void Start()
@@ -170,14 +173,84 @@ public class PassengerAI : MonoBehaviour, IInteractable
     void ApplyToxicVfxState()
     {
         ResolveToxicVfxReference();
-        if (toxicVFX == null)
-            return;
+        GameObject activeVfx = GetToxicVfxTarget(isToxic);
 
-        ParticleSystem[] particleSystems = toxicVFX.GetComponentsInChildren<ParticleSystem>(true);
+        // Keep the old child object as an anchor only when a layered VFX prefab is assigned.
+        if (toxicVFXPrefab != null && toxicVFX != null)
+            SetToxicVfxObjectState(toxicVFX, false);
+
         if (isToxic)
         {
-            if (!toxicVFX.activeSelf)
-                toxicVFX.SetActive(true);
+            if (activeVfx != null)
+                SetToxicVfxObjectState(activeVfx, true);
+
+            return;
+        }
+
+        if (activeVfx != null)
+            SetToxicVfxObjectState(activeVfx, false);
+        else if (toxicVFX != null)
+            SetToxicVfxObjectState(toxicVFX, false);
+    }
+
+    GameObject GetToxicVfxTarget(bool createRuntimeInstance)
+    {
+        if (toxicVFXPrefab == null)
+            return toxicVFX;
+
+        if (runtimeToxicVFX == null && createRuntimeInstance)
+            runtimeToxicVFX = CreateRuntimeToxicVfxInstance();
+
+        return runtimeToxicVFX;
+    }
+
+    GameObject CreateRuntimeToxicVfxInstance()
+    {
+        Transform parent = transform;
+        int siblingIndex = -1;
+        Vector3 anchorLocalPosition = Vector3.zero;
+        Quaternion anchorLocalRotation = Quaternion.identity;
+        Vector3 anchorLocalScale = Vector3.one;
+
+        if (toxicVFX != null)
+        {
+            Transform anchor = toxicVFX.transform;
+            parent = anchor.parent != null ? anchor.parent : transform;
+            siblingIndex = anchor.GetSiblingIndex();
+            anchorLocalPosition = anchor.localPosition;
+            anchorLocalRotation = anchor.localRotation;
+            anchorLocalScale = anchor.localScale;
+        }
+
+        GameObject instance = Instantiate(toxicVFXPrefab, parent);
+        instance.name = ToxicVfxObjectName + "_Runtime";
+
+        Transform instanceTransform = instance.transform;
+        Vector3 prefabLocalPosition = instanceTransform.localPosition;
+        Quaternion prefabLocalRotation = instanceTransform.localRotation;
+        Vector3 prefabLocalScale = instanceTransform.localScale;
+
+        instanceTransform.localPosition = anchorLocalPosition + (anchorLocalRotation * toxicVFXLocalOffset) + prefabLocalPosition;
+        instanceTransform.localRotation = anchorLocalRotation * prefabLocalRotation;
+        instanceTransform.localScale = Vector3.Scale(anchorLocalScale, prefabLocalScale);
+
+        if (siblingIndex >= 0)
+            instanceTransform.SetSiblingIndex(Mathf.Min(siblingIndex, parent.childCount - 1));
+
+        SetToxicVfxObjectState(instance, false);
+        return instance;
+    }
+
+    void SetToxicVfxObjectState(GameObject vfxObject, bool shouldBeActive)
+    {
+        if (vfxObject == null)
+            return;
+
+        ParticleSystem[] particleSystems = vfxObject.GetComponentsInChildren<ParticleSystem>(true);
+        if (shouldBeActive)
+        {
+            if (!vfxObject.activeSelf)
+                vfxObject.SetActive(true);
 
             for (int i = 0; i < particleSystems.Length; i++)
             {
@@ -194,8 +267,8 @@ public class PassengerAI : MonoBehaviour, IInteractable
                 particleSystems[i].Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         }
 
-        if (toxicVFX.activeSelf)
-            toxicVFX.SetActive(false);
+        if (vfxObject.activeSelf)
+            vfxObject.SetActive(false);
     }
 
     Transform FindChildRecursive(Transform parent, string childName)
@@ -623,6 +696,41 @@ public class PassengerAI : MonoBehaviour, IInteractable
         PlayRandomEventAnimation();
         PlayRandomEventAudio();
 
+        return true;
+    }
+
+    public bool CanDebugReceiveRandomEvent()
+    {
+        return activeRandomEvent == RandomEventType.None &&
+               currentState != State.Boarding &&
+               currentState != State.FindingSeat &&
+               currentState != State.Exiting;
+    }
+
+    public bool DebugForceRandomEvent(RandomEventType eventType)
+    {
+        if (eventType == RandomEventType.None || !CanDebugReceiveRandomEvent())
+            return false;
+
+        activeRandomEvent = eventType;
+        CaptureSeatPose();
+
+        switch (activeRandomEvent)
+        {
+            case RandomEventType.ToxicSmell:
+                SetToxicState(true);
+                SetMood(Mood.Angry);
+                break;
+            case RandomEventType.DrunkDance:
+                SetMood(Mood.Happy);
+                break;
+            case RandomEventType.LoudPhone:
+                SetMood(Mood.Neutral);
+                break;
+        }
+
+        PlayRandomEventAnimation();
+        PlayRandomEventAudio();
         return true;
     }
 
