@@ -287,6 +287,11 @@ public class UpgradeManager : MonoBehaviour
         return phoneShopPanel != null && phoneShopPanel.activeSelf;
     }
 
+    public bool IsPhoneShopCurrentlyOpen()
+    {
+        return IsPhoneShopOpen();
+    }
+
     bool IsSummaryOpen()
     {
         return GameManager.Instance != null &&

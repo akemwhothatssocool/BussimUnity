@@ -56,9 +56,11 @@ public class BusPlayerController : MonoBehaviour
     public Vector3 carriedItemLocalEuler = new Vector3(10f, -18f, 6f);
 
     [Header("10. ระบบถือสเปรย์")]
-    public Vector3 carriedSprayLocalPosition = new Vector3(0.42f, -0.34f, 0.7f);
-    public Vector3 carriedSprayLocalEuler = new Vector3(8f, -16f, 8f);
-    public float sprayUseDuration = 4f;
+    public Transform sprayCarryAnchor;
+    public ParticleSystem sprayCarryEffect;
+    public Vector3 carriedSprayLocalPosition = new Vector3(0.82f, -0.62f, 0.78f);
+    public Vector3 carriedSprayLocalEuler = new Vector3(12f, -30f, 4f);
+    public float sprayUseDuration = 3f;
     public string leftHandObjectName = "Hand_L";
     public string ticketCylinderObjectName = "TicketCylinder";
 
@@ -75,14 +77,16 @@ public class BusPlayerController : MonoBehaviour
     SeatDeliveryCrate carriedSeatPackage;
     SprayDeliveryItem carriedSprayItem;
     float sprayUseProgress = 0f;
+    bool sprayEffectTriggeredThisHold = false;
     GameObject leftHandObject;
     GameObject ticketCylinderObject;
-
     void Start()
     {
         controller = GetComponent<CharacterController>();
         fareSystem = FindFirstObjectByType<FareSystem>();
         EnsureCarryAnchor();
+        EnsureSprayCarryAnchor();
+        EnsureSprayCarryEffect();
         EnsureLeftHandObject();
         EnsureTicketCylinderObject();
         Cursor.lockState = CursorLockMode.Locked;
@@ -96,18 +100,33 @@ public class BusPlayerController : MonoBehaviour
 
     void Update()
     {
-        if (Cursor.visible) return;
+        bool allowMovementWhileCursorVisible = IsPhoneShopOpen();
+        if (Cursor.visible && !allowMovementWhileCursorVisible)
+            return;
 
-        HandleMouseLook();
+        if (!Cursor.visible)
+            HandleMouseLook();
+
         HandleMovement();
-        HandleSprayUse();
-        HandleInteraction();
+
+        if (!Cursor.visible)
+        {
+            HandleSprayUse();
+            HandleInteraction();
+        }
+
+        ApplyCarryAnchorPoses();
 
         if (!isInsideBus && cityManager != null)
         {
             Vector3 pushMovement = scrollDirection * cityManager._currentSpeed * Time.deltaTime;
             controller.Move(pushMovement);
         }
+    }
+
+    bool IsPhoneShopOpen()
+    {
+        return UpgradeManager.Instance != null && UpgradeManager.Instance.IsPhoneShopCurrentlyOpen();
     }
 
     void HandleMouseLook()
@@ -367,13 +386,16 @@ public class BusPlayerController : MonoBehaviour
             return;
 
         EnsureCarryAnchor();
+        EnsureSprayCarryAnchor();
         carriedSprayItem = item;
         sprayUseProgress = 0f;
         carriedSprayItem.SetCarriedState(true);
-        carriedSprayItem.transform.SetParent(carryAnchor, false);
+        carriedSprayItem.transform.SetParent(sprayCarryAnchor, false);
         carriedSprayItem.transform.localScale = Vector3.one;
-        carriedSprayItem.transform.localPosition = carriedSprayLocalPosition;
-        carriedSprayItem.transform.localRotation = Quaternion.Euler(carriedSprayLocalEuler);
+        carriedSprayItem.transform.localPosition = Vector3.zero;
+        carriedSprayItem.transform.localRotation = Quaternion.identity;
+        carriedSprayItem.ResetVisualPose();
+        SetSprayCarryEffectActive(false);
         SetLeftHandVisible(false);
         SetTicketCylinderVisible(false);
     }
@@ -386,6 +408,7 @@ public class BusPlayerController : MonoBehaviour
         Destroy(carriedSprayItem.gameObject);
         carriedSprayItem = null;
         sprayUseProgress = 0f;
+        SetSprayCarryEffectActive(false);
         SetLeftHandVisible(true);
         SetTicketCylinderVisible(true);
     }
@@ -403,7 +426,9 @@ public class BusPlayerController : MonoBehaviour
         item.transform.localScale = Vector3.one;
         item.transform.position = worldPosition;
         item.transform.rotation = worldRotation;
+        item.ResetVisualPose();
         item.SetCarriedState(false);
+        SetSprayCarryEffectActive(false);
         if (armDropSound)
             item.ArmDropSound();
 
@@ -412,16 +437,50 @@ public class BusPlayerController : MonoBehaviour
         return item;
     }
 
+    void ApplyCarryAnchorPoses()
+    {
+        if (carryAnchor != null)
+        {
+            carryAnchor.localPosition = Vector3.zero;
+            carryAnchor.localRotation = Quaternion.identity;
+        }
+
+        if (sprayCarryAnchor != null)
+        {
+            sprayCarryAnchor.localScale = Vector3.one;
+        }
+
+        if (carriedSprayItem != null)
+        {
+            carriedSprayItem.transform.localScale = Vector3.one;
+            carriedSprayItem.transform.localPosition = Vector3.zero;
+            carriedSprayItem.transform.localRotation = Quaternion.identity;
+            carriedSprayItem.ResetVisualPose();
+        }
+    }
+
     void HandleSprayUse()
     {
         if (!IsCarryingSprayItem())
         {
             sprayUseProgress = 0f;
+            sprayEffectTriggeredThisHold = false;
             return;
         }
 
-        if (!Input.GetMouseButton(0))
+        bool isSpraying = Input.GetMouseButton(0);
+        if (!isSpraying)
+        {
+            sprayEffectTriggeredThisHold = false;
+            SetSprayCarryEffectActive(false);
             return;
+        }
+
+        if (!sprayEffectTriggeredThisHold)
+        {
+            SetSprayCarryEffectActive(true);
+            sprayEffectTriggeredThisHold = true;
+        }
 
         sprayUseProgress += Time.deltaTime;
         if (sprayUseProgress < sprayUseDuration)
@@ -432,6 +491,7 @@ public class BusPlayerController : MonoBehaviour
             sprayDeliveryManager.TryUseCarriedSpray(this, out _);
 
         sprayUseProgress = 0f;
+        sprayEffectTriggeredThisHold = false;
     }
 
     void EnsureCarryAnchor()
@@ -443,6 +503,59 @@ public class BusPlayerController : MonoBehaviour
         GameObject anchor = new GameObject("CarryAnchor");
         anchor.transform.SetParent(parent, false);
         carryAnchor = anchor.transform;
+    }
+
+    void EnsureSprayCarryAnchor()
+    {
+        if (sprayCarryAnchor != null)
+            return;
+
+        if (playerCamera != null)
+        {
+            Transform existing = playerCamera.Find("SprayCarryAnchor");
+            if (existing != null)
+            {
+                sprayCarryAnchor = existing;
+                return;
+            }
+        }
+
+        Transform parent = playerCamera != null ? playerCamera : transform;
+        GameObject anchor = new GameObject("SprayCarryAnchor");
+        anchor.transform.SetParent(parent, false);
+        anchor.transform.localPosition = carriedSprayLocalPosition;
+        anchor.transform.localRotation = Quaternion.Euler(carriedSprayLocalEuler);
+        sprayCarryAnchor = anchor.transform;
+    }
+
+    void EnsureSprayCarryEffect()
+    {
+        if (sprayCarryEffect != null)
+            return;
+
+        if (sprayCarryAnchor == null)
+            return;
+
+        Transform existing = sprayCarryAnchor.Find("SprayCarryEffect");
+        if (existing != null)
+            sprayCarryEffect = existing.GetComponent<ParticleSystem>();
+    }
+
+    void SetSprayCarryEffectActive(bool isActive)
+    {
+        EnsureSprayCarryEffect();
+        if (sprayCarryEffect == null)
+            return;
+
+        if (isActive)
+        {
+            if (!sprayCarryEffect.isPlaying)
+                sprayCarryEffect.Play(true);
+            return;
+        }
+
+        if (sprayCarryEffect.isPlaying)
+            sprayCarryEffect.Stop(true, ParticleSystemStopBehavior.StopEmitting);
     }
 
     void EnsureLeftHandObject()
