@@ -1,11 +1,8 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public class NPCSpawner : MonoBehaviour
+public class NPCMoneySpawner : MonoBehaviour
 {
-    [Header("ตั้งค่า NPC")]
-    public GameObject npcPrefab; // อย่าลืมลาก Prefab ของ NPC มาใส่ใน Inspector
-
     [Header("รูปแบบเงินที่ NPC มี (ลาก Prefab มาใส่ให้ครบ)")]
     public GameObject[] moneyPrefabs;
 
@@ -27,7 +24,7 @@ public class NPCSpawner : MonoBehaviour
         Dictionary<int, List<GameObject>> prefabsByValue = BuildMoneyPrefabMap();
         if (prefabsByValue.Count == 0)
         {
-            Debug.LogWarning("ไม่มี money prefab ที่ใช้งานได้ใน NPCSpawner");
+            Debug.LogWarning("ไม่มี money prefab ที่ใช้งานได้ใน NPCMoneySpawner");
             return;
         }
 
@@ -124,25 +121,5 @@ public class NPCSpawner : MonoBehaviour
         }
 
         currentMoneyObjects.Clear();
-    }
-
-    // --- ส่วนที่ 2: การเสก NPC ที่ป้ายรถเมล์ ---
-    public void SpawnPassengersAtStop(int amountToSpawn, Transform busStopLocation)
-    {
-        if (npcPrefab == null)
-        {
-            Debug.LogError("ลืมใส่ npcPrefab ใน NPCSpawner หรือเปล่า?");
-            return;
-        }
-
-        for (int i = 0; i < amountToSpawn; i++)
-        {
-            // 1. สุ่มตำแหน่งรอบๆ จุดเกิด (รัศมี 2 เมตร)
-            Vector2 randomCircle = Random.insideUnitCircle * 2f;
-            Vector3 spawnPos = busStopLocation.position + new Vector3(randomCircle.x, 0f, randomCircle.y);
-
-            // 2. สร้าง NPC ตรงตำแหน่งที่สุ่มได้
-            Instantiate(npcPrefab, spawnPos, busStopLocation.rotation);
-        }
     }
 }

@@ -58,16 +58,16 @@ public class InteractPromptUI : MonoBehaviour
         {
             isVisible = true;
             targetAlpha = 1f;
+        }
 
-            if (promptText != null)
+        if (promptText != null)
+        {
+            if (useSprite)
             {
-                if (useSprite)
-                {
-                    // ใช้ index ง่ายกว่า
-                    message = message.Replace("E", $"<sprite={spriteIndex}>");
-                }
-                promptText.text = message;
+                // ใช้ index ง่ายกว่า
+                message = message.Replace("E", $"<sprite={spriteIndex}>");
             }
+            promptText.text = message;
         }
     }
 

@@ -10,7 +10,7 @@ public class GameManager : MonoBehaviour
     [Header("=== ระบบวันและป้าย ===")]
     public int currentDay = 1;
     public int stopsReached = 0;
-    public int stopsPerDay = 5;
+    public int stopsPerDay = 7;
 
     [Header("=== สถิติประจำวัน (Daily Stats) ===")]
     public int dailyPassengers = 0;
@@ -291,6 +291,7 @@ public class GameManager : MonoBehaviour
             InitializeSeatMarkersForNewGame();
 
         SeatDeliveryManager.GetOrCreateInstance().ApplySaveData(data);
+        SprayDeliveryManager.GetOrCreateInstance().ApplySaveData(data);
 
         CityManager cityManager = Object.FindFirstObjectByType<CityManager>();
         if (cityManager != null)

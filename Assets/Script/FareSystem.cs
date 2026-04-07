@@ -53,7 +53,7 @@ public class FareSystem : MonoBehaviour
     [Header("=== 5. ข้อมูล NPC & Player ===")]
     public PassengerAI currentPassenger;
     private int currentPoseState = 0;
-    public NPCSpawner npcSpawner;
+    public NPCMoneySpawner npcSpawner;
     public Animator npcAnimator;
     public Transform handPosSitL;
     public Transform handPosSitR;
@@ -112,6 +112,12 @@ public class FareSystem : MonoBehaviour
         }
 
         if (!isTransactionActive) return;
+
+        if (!isProcessingSubmit && Input.GetKeyDown(KeyCode.Escape))
+        {
+            PausePaymentUI();
+            return;
+        }
 
         // ปุ่มยืนยัน (Space / Enter)
         if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
@@ -209,6 +215,18 @@ public class FareSystem : MonoBehaviour
         UpdateUI();
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
+    }
+
+    void PausePaymentUI()
+    {
+        if (!isTransactionActive)
+            return;
+
+        isTransactionActive = false;
+        waitingForCollection = true;
+        TogglePaymentUI(false);
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
     }
 
     public void ReceiveNPCMoney(int amount)
@@ -410,8 +428,8 @@ IEnumerator ShowResultAndClose(int diff)
         isTransactionActive = false;
         waitingForCollection = true;
 
-        TogglePaymentUI(false);
         ResetTextDisplay();
+        TogglePaymentUI(false);
 
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;

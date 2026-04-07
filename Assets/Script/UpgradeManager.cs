@@ -24,7 +24,7 @@ public class UpgradeManager : MonoBehaviour
     [Header("=== 2. Fuel Upgrade (Increase Stops Per Day) ===")]
     public int fuelUpgradeCost = 140;
     public int stopIncreasePerFuelUpgrade = 1;
-    public int maxStopsPerDay = 8;
+    public int maxStopsPerDay = 14;
     public TextMeshProUGUI txtFuelCost;
 
     [Header("=== 3. อัปเกรดเบาะนั่ง (Seat - เพิ่มความนิยม) ===")]

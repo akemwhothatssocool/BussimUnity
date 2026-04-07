@@ -6,6 +6,7 @@ using System;
 public class PassengerAI : MonoBehaviour, IInteractable
 {
     const string ToxicVfxObjectName = "ToxicSmoke";
+    static readonly string[] ToxicComplaintThoughts = { "ใครไม่อาบน้ำ...", "ดิฉันเกือบเป็นลม..." };
 
     public enum State { Boarding, FindingSeat, Seated, WaitingForFare, HandExtended, Paying, Riding, Exiting }
     public enum RandomEventType { None, ToxicSmell, DrunkDance, LoudPhone }
@@ -51,6 +52,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
     public NavMeshAgent agent;
     public Animator animator;
     private Rigidbody rb;
+    private PassengerThoughtBubble thoughtBubble;
 
     [Header("ตำแหน่งมือ/อุปกรณ์")]
     public Transform handPosStand;
@@ -118,6 +120,9 @@ public class PassengerAI : MonoBehaviour, IInteractable
     {
         fareSystem = FindFirstObjectByType<FareSystem>();
         rb = GetComponent<Rigidbody>();
+        thoughtBubble = GetComponent<PassengerThoughtBubble>();
+        if (thoughtBubble == null)
+            thoughtBubble = gameObject.AddComponent<PassengerThoughtBubble>();
 
         if (randomEventAnimator == null)
             randomEventAnimator = animator;
@@ -315,9 +320,18 @@ public class PassengerAI : MonoBehaviour, IInteractable
             currentState == State.HandExtended)
         {
             currentWaitTime += Time.deltaTime * GetPatienceDecayMultiplier();
-            if (currentWaitTime >= timeToAngry)      SetMood(Mood.Angry);
-            else if (currentWaitTime >= timeToNeutral) SetMood(Mood.Neutral);
-            else                                       SetMood(Mood.Happy);
+            if (currentWaitTime >= timeToAngry)
+            {
+                SetMood(Mood.Angry);
+            }
+            else if (currentWaitTime >= timeToNeutral)
+            {
+                SetMood(Mood.Neutral);
+            }
+            else
+            {
+                SetMood(Mood.Happy);
+            }
         }
     }
 
@@ -576,6 +590,7 @@ public class PassengerAI : MonoBehaviour, IInteractable
 
             // แสดงสีหน้าเยาะเย้ย
             SetMood(Mood.Happy);
+            ShowThought("ป้าดด วันนี้นั่งฟรี", 2f);
         }
         else
         {
@@ -602,7 +617,10 @@ public class PassengerAI : MonoBehaviour, IInteractable
                        currentState == State.Riding;
 
         if (isOnBus)
+        {
+            thoughtBubble?.HideImmediate();
             currentState = State.Exiting;
+        }
     }
 
     public void SetMood(Mood newMood)
@@ -684,12 +702,15 @@ public class PassengerAI : MonoBehaviour, IInteractable
             case RandomEventType.ToxicSmell:
                 SetToxicState(true);
                 SetMood(Mood.Angry);
+                ShowToxicComplaintsFromNearbyPassengers();
                 break;
             case RandomEventType.DrunkDance:
                 SetMood(Mood.Happy);
+                ShowThought("เผลอเต้น!", 2.2f);
                 break;
             case RandomEventType.LoudPhone:
                 SetMood(Mood.Neutral);
+                ShowThought("ฮัลโหล! ได้ยินไหม!", 2.4f);
                 break;
         }
 
@@ -720,12 +741,15 @@ public class PassengerAI : MonoBehaviour, IInteractable
             case RandomEventType.ToxicSmell:
                 SetToxicState(true);
                 SetMood(Mood.Angry);
+                ShowToxicComplaintsFromNearbyPassengers();
                 break;
             case RandomEventType.DrunkDance:
                 SetMood(Mood.Happy);
+                ShowThought("เผลอเต้น!", 2.2f);
                 break;
             case RandomEventType.LoudPhone:
                 SetMood(Mood.Neutral);
+                ShowThought("ฮัลโหล! ได้ยินไหม!", 2.4f);
                 break;
         }
 
@@ -740,10 +764,24 @@ public class PassengerAI : MonoBehaviour, IInteractable
                (activeRandomEvent == RandomEventType.DrunkDance || activeRandomEvent == RandomEventType.LoudPhone);
     }
 
+    public bool TryResolveToxicSmellBySpray()
+    {
+        if (activeRandomEvent != RandomEventType.ToxicSmell)
+            return false;
+
+        FinishRandomEvent(true);
+        return true;
+    }
+
     public void ResolveRandomEvent()
     {
         if (!CanResolveRandomEvent())
             return;
+
+        if (activeRandomEvent == RandomEventType.DrunkDance)
+            ShowThought("โทษครับ/ค่ะ ฟิลมันมา", 2f);
+        else if (activeRandomEvent == RandomEventType.LoudPhone)
+            ShowThought("เออๆแค่นี้นะเดี๋ยวเม้าท์ต่อที่บ้าน", 2.4f);
 
         FinishRandomEvent(true);
     }
@@ -996,8 +1034,46 @@ public class PassengerAI : MonoBehaviour, IInteractable
         return false;
     }
 
+    void ShowThought(string message, float duration = 2.2f)
+    {
+        if (thoughtBubble == null)
+            return;
+
+        thoughtBubble.Show(message, duration);
+    }
+
+    void ShowToxicComplaintsFromNearbyPassengers()
+    {
+        PassengerAI[] passengers = UnityEngine.Object.FindObjectsByType<PassengerAI>(FindObjectsSortMode.None);
+        if (passengers == null || passengers.Length == 0)
+            return;
+
+        int shownCount = 0;
+        for (int i = 0; i < passengers.Length; i++)
+        {
+            PassengerAI passenger = passengers[i];
+            if (passenger == null || passenger == this)
+                continue;
+
+            bool isOnBus = passenger.currentState == State.WaitingForFare ||
+                           passenger.currentState == State.HandExtended ||
+                           passenger.currentState == State.Paying ||
+                           passenger.currentState == State.Riding;
+            if (!isOnBus)
+                continue;
+
+            string complaint = ToxicComplaintThoughts[shownCount % ToxicComplaintThoughts.Length];
+            passenger.ShowThought(complaint, 2.8f);
+            shownCount++;
+
+            if (shownCount >= ToxicComplaintThoughts.Length)
+                break;
+        }
+    }
+
     void OnDestroy()
     {
+        thoughtBubble?.HideImmediate();
         FinishRandomEvent(false);
         onExitBus?.Invoke();
         onExitBus = null;

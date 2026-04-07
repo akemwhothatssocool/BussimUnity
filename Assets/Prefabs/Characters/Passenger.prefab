@@ -15153,7 +15153,7 @@ MonoBehaviour:
   eventAnimationSpeed: 4.2
   randomEventAudioSource: {fileID: 0}
   drunkDanceAudioClip: {fileID: 8300000, guid: 3a303f3751fb75e4ca46342e1e9f9dd2, type: 3}
-  loudPhoneAudioClip: {fileID: 0}
+  loudPhoneAudioClip: {fileID: 8300000, guid: 31124b583a86d4c458fc4ed8cf834e61, type: 3}
   randomEventAudioVolume: 0.85
   loopRandomEventAudio: 1
   randomEventAnimator: {fileID: 0}

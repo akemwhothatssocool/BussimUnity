@@ -54,6 +54,13 @@ public class BusPlayerController : MonoBehaviour
     public Vector3 carriedItemLocalPosition = new Vector3(0.32f, -0.28f, 0.95f);
     public Vector3 carriedItemLocalEuler = new Vector3(10f, -18f, 6f);
 
+    [Header("10. ระบบถือสเปรย์")]
+    public Vector3 carriedSprayLocalPosition = new Vector3(0.42f, -0.34f, 0.7f);
+    public Vector3 carriedSprayLocalEuler = new Vector3(8f, -16f, 8f);
+    public float sprayUseDuration = 4f;
+    public string leftHandObjectName = "Hand_L";
+    public string ticketCylinderObjectName = "TicketCylinder";
+
     CharacterController controller;
     FareSystem fareSystem;
     float lastBusSpeed;
@@ -65,12 +72,18 @@ public class BusPlayerController : MonoBehaviour
     bool isTransactionActive = false;
     const float maxFallSpeed = -20f;
     SeatDeliveryCrate carriedSeatPackage;
+    SprayDeliveryItem carriedSprayItem;
+    float sprayUseProgress = 0f;
+    GameObject leftHandObject;
+    GameObject ticketCylinderObject;
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
         fareSystem = FindFirstObjectByType<FareSystem>();
         EnsureCarryAnchor();
+        EnsureLeftHandObject();
+        EnsureTicketCylinderObject();
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         currentStamina = maxStamina;
@@ -86,6 +99,7 @@ public class BusPlayerController : MonoBehaviour
 
         HandleMouseLook();
         HandleMovement();
+        HandleSprayUse();
         HandleInteraction();
 
         if (!isInsideBus && cityManager != null)
@@ -161,6 +175,13 @@ public class BusPlayerController : MonoBehaviour
 
     void HandleInteraction()
     {
+        if (IsCarryingSprayItem())
+        {
+            if (interactPromptUI != null)
+                interactPromptUI.Show("คลิกซ้ายเพื่อฉีดสเปรย์");
+            return;
+        }
+
         if (isTransactionActive)
         {
             if (fareSystem == null)
@@ -290,6 +311,11 @@ public class BusPlayerController : MonoBehaviour
         return carriedSeatPackage != null;
     }
 
+    public bool IsCarryingSprayItem()
+    {
+        return carriedSprayItem != null;
+    }
+
     public int GetCarriedSeatLevel()
     {
         return carriedSeatPackage != null ? carriedSeatPackage.seatLevel : 0;
@@ -317,6 +343,56 @@ public class BusPlayerController : MonoBehaviour
         carriedSeatPackage = null;
     }
 
+    public void AttachSprayItem(SprayDeliveryItem item)
+    {
+        if (item == null)
+            return;
+
+        EnsureCarryAnchor();
+        carriedSprayItem = item;
+        sprayUseProgress = 0f;
+        carriedSprayItem.SetCarriedState(true);
+        carriedSprayItem.transform.SetParent(carryAnchor, false);
+        carriedSprayItem.transform.localPosition = carriedSprayLocalPosition;
+        carriedSprayItem.transform.localRotation = Quaternion.Euler(carriedSprayLocalEuler);
+        SetLeftHandVisible(false);
+        SetTicketCylinderVisible(false);
+    }
+
+    public void ClearCarriedSprayItem()
+    {
+        if (carriedSprayItem == null)
+            return;
+
+        Destroy(carriedSprayItem.gameObject);
+        carriedSprayItem = null;
+        sprayUseProgress = 0f;
+        SetLeftHandVisible(true);
+        SetTicketCylinderVisible(true);
+    }
+
+    void HandleSprayUse()
+    {
+        if (!IsCarryingSprayItem())
+        {
+            sprayUseProgress = 0f;
+            return;
+        }
+
+        if (!Input.GetMouseButton(0))
+            return;
+
+        sprayUseProgress += Time.deltaTime;
+        if (sprayUseProgress < sprayUseDuration)
+            return;
+
+        SprayDeliveryManager sprayDeliveryManager = SprayDeliveryManager.GetOrCreateInstance();
+        if (sprayDeliveryManager != null)
+            sprayDeliveryManager.TryUseCarriedSpray(this, out _);
+
+        sprayUseProgress = 0f;
+    }
+
     void EnsureCarryAnchor()
     {
         if (carryAnchor != null)
@@ -326,6 +402,57 @@ public class BusPlayerController : MonoBehaviour
         GameObject anchor = new GameObject("CarryAnchor");
         anchor.transform.SetParent(parent, false);
         carryAnchor = anchor.transform;
+    }
+
+    void EnsureLeftHandObject()
+    {
+        leftHandObject = FindSceneObjectByName(leftHandObjectName, leftHandObject);
+    }
+
+    void EnsureTicketCylinderObject()
+    {
+        ticketCylinderObject = FindSceneObjectByName(ticketCylinderObjectName, ticketCylinderObject);
+    }
+
+    GameObject FindSceneObjectByName(string objectName, GameObject cachedObject)
+    {
+        if (cachedObject != null || string.IsNullOrWhiteSpace(objectName))
+            return cachedObject;
+
+        Transform[] transforms = UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < transforms.Length; i++)
+        {
+            Transform candidate = transforms[i];
+            if (candidate == null || candidate.name != objectName)
+                continue;
+
+            if (!candidate.gameObject.scene.IsValid())
+                continue;
+
+            return candidate.gameObject;
+        }
+
+        return null;
+    }
+
+    void SetLeftHandVisible(bool isVisible)
+    {
+        EnsureLeftHandObject();
+        if (leftHandObject == null)
+            return;
+
+        if (leftHandObject.activeSelf != isVisible)
+            leftHandObject.SetActive(isVisible);
+    }
+
+    void SetTicketCylinderVisible(bool isVisible)
+    {
+        EnsureTicketCylinderObject();
+        if (ticketCylinderObject == null)
+            return;
+
+        if (ticketCylinderObject.activeSelf != isVisible)
+            ticketCylinderObject.SetActive(isVisible);
     }
 
     void OnTriggerStay(Collider other)

@@ -7,7 +7,7 @@ public class GameSaveData
     public string sceneName = "GameScene";
     public int currentDay = 1;
     public int stopsReached = 0;
-    public int stopsPerDay = 5;
+    public int stopsPerDay = 7;
     public int dailyPassengers = 0;
     public int dailyMissed = 0;
     public int dailyIncome = 0;
@@ -27,6 +27,10 @@ public class GameSaveData
     public Vector3 pendingSeatDeliveryRotation = Vector3.zero;
     public bool isCarryingSeatDelivery = false;
     public int carriedSeatDeliveryLevel = 0;
+    public bool hasPendingSprayDelivery = false;
+    public Vector3 pendingSprayDeliveryPosition = Vector3.zero;
+    public Vector3 pendingSprayDeliveryRotation = Vector3.zero;
+    public bool isCarryingSprayDelivery = false;
     public SeatSaveData[] seatStates = Array.Empty<SeatSaveData>();
 }
 
@@ -122,6 +126,9 @@ public static class SaveSystem
 
         if (SeatDeliveryManager.Instance != null)
             SeatDeliveryManager.Instance.CaptureSaveData(data);
+
+        if (SprayDeliveryManager.Instance != null)
+            SprayDeliveryManager.Instance.CaptureSaveData(data);
 
         BusSeat[] seats = UnityEngine.Object.FindObjectsByType<BusSeat>(FindObjectsSortMode.None);
         data.seatStates = new SeatSaveData[seats.Length];

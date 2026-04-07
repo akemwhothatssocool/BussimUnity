@@ -18,7 +18,7 @@ public class UpgradeShop : MonoBehaviour
     const string SeatPriceObjectNameLv3 = "Chair_Lv3_price";
     const string CategoryDropdownObjectName = "Dropdown";
     const string DefaultChairFeedback = "เลือกเก้าอี้ที่ต้องการซื้อ";
-    const string DefaultFanFeedback = "<color=#7A6B57>หมวดพัดลมกำลังเตรียมสินค้า</color>";
+    const string DefaultFanFeedback = "<color=#7A6B57>Spray กำลังเตรียมใช้งาน</color>";
     const string DeliveryUnavailableFeedback = "<color=red>ระบบส่งเก้าอี้ยังไม่พร้อมใช้งาน</color>";
 
     static readonly string[] ChairCardObjectNames =
@@ -30,6 +30,7 @@ public class UpgradeShop : MonoBehaviour
 
     static readonly string[] FanCardObjectNames =
     {
+        "SprayCardBaseLV1",
         "FanCardBaseLV1",
         "FanCardBaseLV2",
         "FanCardBaseLV3",
@@ -45,6 +46,9 @@ public class UpgradeShop : MonoBehaviour
     public int priceLv1 = 80;
     public int priceLv2 = 180;
     public int priceLv3 = 350;
+
+    [Header("Object Prices")]
+    public int sprayPrice = 60;
 
     [Header("Feedback UI")]
     public TextMeshProUGUI txtShopFeedback;
@@ -77,7 +81,24 @@ public class UpgradeShop : MonoBehaviour
     {
         if (GetSelectedCategory() != ShopCategory.Chair)
         {
-            SetFeedback(DefaultFanFeedback);
+            SprayDeliveryManager sprayDeliveryManager = SprayDeliveryManager.GetOrCreateInstance();
+            if (sprayDeliveryManager == null)
+            {
+                SetFeedback(DefaultFanFeedback);
+                return;
+            }
+
+            if (sprayDeliveryManager.TryOrderSprayDelivery(sprayPrice, out string sprayFeedback))
+            {
+                SetFeedback(sprayFeedback);
+
+                if (UpgradeManager.Instance != null)
+                    UpgradeManager.Instance.CloseMenu();
+
+                return;
+            }
+
+            SetFeedback(sprayFeedback);
             return;
         }
 
@@ -136,6 +157,7 @@ public class UpgradeShop : MonoBehaviour
         SetTextByObjectName(SeatPriceObjectNameLv1, priceLv1.ToString());
         SetTextByObjectName(SeatPriceObjectNameLv2, priceLv2.ToString());
         SetTextByObjectName(SeatPriceObjectNameLv3, priceLv3.ToString());
+        SetTextByObjectName("Spray_price", sprayPrice.ToString());
     }
 
     void CacheUiReferences()
@@ -155,12 +177,12 @@ public class UpgradeShop : MonoBehaviour
 
         if (categoryDropdown.options.Count != 2 ||
             categoryDropdown.options[0].text != "Chair" ||
-            categoryDropdown.options[1].text != "Fan")
+            categoryDropdown.options[1].text != "Object")
         {
             categoryDropdown.options = new List<TMP_Dropdown.OptionData>
             {
                 new("Chair"),
-                new("Fan")
+                new("Object")
             };
         }
 
