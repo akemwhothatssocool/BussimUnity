@@ -22,6 +22,7 @@ public class BusPlayerController : MonoBehaviour
 
     [Header("4. ระบบ Interaction")]
     public float interactRange = 2.0f;
+    public float interactSphereRadius = 0.18f;
     public LayerMask interactLayer;
     public InteractPromptUI interactPromptUI;
     public float seatInstallAssistRange = 3.2f;
@@ -178,7 +179,14 @@ public class BusPlayerController : MonoBehaviour
         if (IsCarryingSprayItem())
         {
             if (interactPromptUI != null)
-                interactPromptUI.Show("คลิกซ้ายเพื่อฉีดสเปรย์");
+                interactPromptUI.Show("คลิกซ้ายเพื่อฉีดสเปรย์  |  กด E เพื่อวางลง", true);
+
+            if (Input.GetKeyDown(KeyCode.E))
+            {
+                SprayDeliveryManager sprayDeliveryManager = SprayDeliveryManager.GetOrCreateInstance();
+                if (sprayDeliveryManager != null)
+                    sprayDeliveryManager.TryDropCarriedSpray(this, out _);
+            }
             return;
         }
 
@@ -225,10 +233,10 @@ public class BusPlayerController : MonoBehaviour
     {
         Ray ray = new Ray(playerCamera.position, playerCamera.forward);
 
-        if (TryGetInteractableFromHits(Physics.RaycastAll(ray, interactRange, interactLayer), out interactable))
+        if (TryGetInteractableFromHits(Physics.SphereCastAll(ray, interactSphereRadius, interactRange, interactLayer, QueryTriggerInteraction.Ignore), out interactable))
             return true;
 
-        if (TryGetInteractableFromHits(Physics.RaycastAll(ray, interactRange), out interactable))
+        if (TryGetInteractableFromHits(Physics.SphereCastAll(ray, interactSphereRadius, interactRange, ~0, QueryTriggerInteraction.Ignore), out interactable))
             return true;
 
         return TryGetSeatInstallFallback(ray, out interactable);
@@ -316,6 +324,16 @@ public class BusPlayerController : MonoBehaviour
         return carriedSprayItem != null;
     }
 
+    public int GetCarriedSprayRemainingUses()
+    {
+        return carriedSprayItem != null ? carriedSprayItem.GetRemainingUses() : 0;
+    }
+
+    public SprayDeliveryItem GetCarriedSprayItem()
+    {
+        return carriedSprayItem;
+    }
+
     public int GetCarriedSeatLevel()
     {
         return carriedSeatPackage != null ? carriedSeatPackage.seatLevel : 0;
@@ -353,6 +371,7 @@ public class BusPlayerController : MonoBehaviour
         sprayUseProgress = 0f;
         carriedSprayItem.SetCarriedState(true);
         carriedSprayItem.transform.SetParent(carryAnchor, false);
+        carriedSprayItem.transform.localScale = Vector3.one;
         carriedSprayItem.transform.localPosition = carriedSprayLocalPosition;
         carriedSprayItem.transform.localRotation = Quaternion.Euler(carriedSprayLocalEuler);
         SetLeftHandVisible(false);
@@ -369,6 +388,28 @@ public class BusPlayerController : MonoBehaviour
         sprayUseProgress = 0f;
         SetLeftHandVisible(true);
         SetTicketCylinderVisible(true);
+    }
+
+    public SprayDeliveryItem DropCarriedSprayItem(Vector3 worldPosition, Quaternion worldRotation, bool armDropSound)
+    {
+        if (carriedSprayItem == null)
+            return null;
+
+        SprayDeliveryItem item = carriedSprayItem;
+        carriedSprayItem = null;
+        sprayUseProgress = 0f;
+
+        item.transform.SetParent(null, true);
+        item.transform.localScale = Vector3.one;
+        item.transform.position = worldPosition;
+        item.transform.rotation = worldRotation;
+        item.SetCarriedState(false);
+        if (armDropSound)
+            item.ArmDropSound();
+
+        SetLeftHandVisible(true);
+        SetTicketCylinderVisible(true);
+        return item;
     }
 
     void HandleSprayUse()

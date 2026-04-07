@@ -30,7 +30,9 @@ public class GameSaveData
     public bool hasPendingSprayDelivery = false;
     public Vector3 pendingSprayDeliveryPosition = Vector3.zero;
     public Vector3 pendingSprayDeliveryRotation = Vector3.zero;
+    public int pendingSprayRemainingUses = 0;
     public bool isCarryingSprayDelivery = false;
+    public int carriedSprayRemainingUses = 0;
     public SeatSaveData[] seatStates = Array.Empty<SeatSaveData>();
 }
 

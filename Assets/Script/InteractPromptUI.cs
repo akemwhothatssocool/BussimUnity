@@ -13,6 +13,9 @@ public class InteractPromptUI : MonoBehaviour
     [SerializeField] private float scaleAmount = 1.1f;
     [SerializeField] private float scaleSpeed = 3f;
 
+    [Header("Layout")]
+    [SerializeField] private Vector2 lowerScreenOffset = new Vector2(0f, -180f);
+
     [Header("Key Display")]
     [SerializeField] private string interactKey = "E";
     [SerializeField] private int spriteIndex = 0; // ใช้ index แทน
@@ -22,6 +25,8 @@ public class InteractPromptUI : MonoBehaviour
     private float targetAlpha = 0f;
     private Vector3 originalScale;
     private float scaleTimer = 0f;
+    private RectTransform rectTransform;
+    private Vector2 defaultAnchoredPosition;
 
     private void Awake()
     {
@@ -29,6 +34,10 @@ public class InteractPromptUI : MonoBehaviour
             canvasGroup = GetComponent<CanvasGroup>();
         if (canvasGroup == null)
             canvasGroup = gameObject.AddComponent<CanvasGroup>();
+
+        rectTransform = transform as RectTransform;
+        if (rectTransform != null)
+            defaultAnchoredPosition = rectTransform.anchoredPosition;
 
         originalScale = transform.localScale;
         Hide(true);
@@ -54,6 +63,11 @@ public class InteractPromptUI : MonoBehaviour
 
     public void Show(string message)
     {
+        Show(message, false);
+    }
+
+    public void Show(string message, bool useLowerPosition)
+    {
         if (!isVisible)
         {
             isVisible = true;
@@ -69,6 +83,8 @@ public class InteractPromptUI : MonoBehaviour
             }
             promptText.text = message;
         }
+
+        ApplyPromptPosition(useLowerPosition);
     }
 
     public void Hide(bool immediate = false)
@@ -82,6 +98,8 @@ public class InteractPromptUI : MonoBehaviour
             canvasGroup.interactable = false;
             canvasGroup.blocksRaycasts = false;
         }
+
+        ApplyPromptPosition(false);
     }
 
     public bool IsVisible => isVisible;
@@ -111,5 +129,15 @@ public class InteractPromptUI : MonoBehaviour
         scaleTimer += Time.deltaTime * scaleSpeed;
         float scale = 1f + Mathf.Sin(scaleTimer) * (scaleAmount - 1f) * 0.5f;
         transform.localScale = originalScale * scale;
+    }
+
+    private void ApplyPromptPosition(bool useLowerPosition)
+    {
+        if (rectTransform == null)
+            return;
+
+        rectTransform.anchoredPosition = useLowerPosition
+            ? defaultAnchoredPosition + lowerScreenOffset
+            : defaultAnchoredPosition;
     }
 }

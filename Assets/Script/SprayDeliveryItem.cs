@@ -12,6 +12,7 @@ public class SprayDeliveryItem : MonoBehaviour, IInteractable
     Collider itemCollider;
     bool playDropSoundOnNextCollision;
     bool hasPlayedDropSound;
+    int remainingUses;
 
     void Awake()
     {
@@ -19,9 +20,10 @@ public class SprayDeliveryItem : MonoBehaviour, IInteractable
         itemCollider = GetComponent<Collider>();
     }
 
-    public void Setup(GameObject visualPrefab, Vector3 visualLocalScale, Vector3 visualLocalEuler)
+    public void Setup(GameObject visualPrefab, Vector3 visualLocalScale, Vector3 visualLocalEuler, int initialUses)
     {
         name = "SprayDeliveryItem";
+        remainingUses = Mathf.Max(1, initialUses);
 
         if (visualPrefab != null)
         {
@@ -47,6 +49,17 @@ public class SprayDeliveryItem : MonoBehaviour, IInteractable
         Renderer fallbackRenderer = fallbackVisual.GetComponent<Renderer>();
         if (fallbackRenderer != null)
             fallbackRenderer.material.color = new Color(0.42f, 0.86f, 0.72f, 1f);
+    }
+
+    public int GetRemainingUses()
+    {
+        return remainingUses;
+    }
+
+    public int ConsumeUse()
+    {
+        remainingUses = Mathf.Max(0, remainingUses - 1);
+        return remainingUses;
     }
 
     public void ArmDropSound()

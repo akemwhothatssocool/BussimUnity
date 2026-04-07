@@ -214,6 +214,7 @@ public class SeatDeliveryManager : MonoBehaviour
         crateBody.mass = 2.2f;
         crateBody.angularDamping = 3.5f;
         crateBody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        crateObject.AddComponent<BusExteriorScrollObject>();
 
         SeatDeliveryCrate crate = crateObject.AddComponent<SeatDeliveryCrate>();
         crate.Setup(level);

@@ -14,9 +14,13 @@ public class SprayDeliveryManager : MonoBehaviour
     public Vector3 itemSize = new Vector3(0.42f, 0.42f, 0.42f);
     public float dropSpacePadding = 0.08f;
 
+    [Header("Hand Drop")]
+    public Vector3 carriedDropOffset = new Vector3(0.32f, 0f, 0.48f);
+
     [Header("Spray Visual")]
     public Vector3 sprayVisualLocalScale = new Vector3(0.8f, 0.8f, 0.8f);
     public Vector3 sprayVisualLocalEuler = new Vector3(0f, 0f, 0f);
+    public int sprayUsesPerItem = 5;
 
     SprayDeliveryItem activeItem;
 
@@ -82,7 +86,7 @@ public class SprayDeliveryManager : MonoBehaviour
 
         BusPlayerController player = Object.FindFirstObjectByType<BusPlayerController>();
         bool foundReachableDropPose = TryGetReachableDropPose(player, out Vector3 dropPosition, out Quaternion dropRotation);
-        SprayDeliveryItem item = SpawnDeliveryItem(dropPosition, dropRotation, true);
+        SprayDeliveryItem item = SpawnDeliveryItem(dropPosition, dropRotation, true, sprayUsesPerItem);
 
         if (!foundReachableDropPose && item != null && player != null && !player.IsCarryingSprayItem())
             TryPickUpSpray(item, player);
@@ -112,13 +116,47 @@ public class SprayDeliveryManager : MonoBehaviour
         if (player == null || !player.IsCarryingSprayItem())
             return false;
 
+        SprayDeliveryItem carriedItem = player.GetCarriedSprayItem();
+        if (carriedItem == null)
+            return false;
+
         int clearedCount = ResolveToxicPassengers();
-        player.ClearCarriedSprayItem();
+        int remainingUses = carriedItem.ConsumeUse();
+        if (remainingUses <= 0)
+            player.ClearCarriedSprayItem();
+
         SaveSystem.SaveCurrentGame();
 
-        feedback = clearedCount > 0
-            ? $"<color=green>ฉีดสเปรย์สำเร็จ กลิ่นไม่พึงประสงค์หายไป {clearedCount} จุดแล้ว</color>"
-            : "<color=#7A6B57>ฉีดสเปรย์แล้ว แต่ตอนนี้ยังไม่มีคนตัวเหม็นบนรถ</color>";
+        if (clearedCount > 0)
+            feedback = remainingUses > 0
+                ? $"<color=green>ฉีดสเปรย์สำเร็จ กลิ่นไม่พึงประสงค์หายไป {clearedCount} จุดแล้ว เหลือใช้อีก {remainingUses} ครั้ง</color>"
+                : $"<color=green>ฉีดสเปรย์สำเร็จ กลิ่นไม่พึงประสงค์หายไป {clearedCount} จุดแล้ว และสเปรย์หมดพอดี</color>";
+        else
+            feedback = remainingUses > 0
+                ? $"<color=#7A6B57>ฉีดสเปรย์แล้ว แต่ตอนนี้ยังไม่มีคนตัวเหม็นบนรถ เหลือใช้อีก {remainingUses} ครั้ง</color>"
+                : "<color=#7A6B57>ฉีดสเปรย์แล้ว แต่ตอนนี้ยังไม่มีคนตัวเหม็นบนรถ และสเปรย์หมดพอดี</color>";
+        return true;
+    }
+
+    public bool TryDropCarriedSpray(BusPlayerController player, out string feedback)
+    {
+        feedback = string.Empty;
+        if (player == null || !player.IsCarryingSprayItem())
+            return false;
+
+        if (!TryGetCarriedDropPose(player, out Vector3 dropPosition, out Quaternion dropRotation))
+        {
+            feedback = "<color=yellow>ตรงนี้แคบไป วางสเปรย์ไม่ถนัด ลองขยับอีกนิด</color>";
+            return false;
+        }
+
+        SprayDeliveryItem droppedItem = player.DropCarriedSprayItem(dropPosition, dropRotation, true);
+        if (droppedItem == null)
+            return false;
+
+        activeItem = droppedItem;
+        SaveSystem.SaveCurrentGame();
+        feedback = "<color=green>วางสเปรย์ลงพื้นแล้ว</color>";
         return true;
     }
 
@@ -136,9 +174,11 @@ public class SprayDeliveryManager : MonoBehaviour
         data.hasPendingSprayDelivery = activeItem != null;
         data.pendingSprayDeliveryPosition = activeItem != null ? activeItem.transform.position : Vector3.zero;
         data.pendingSprayDeliveryRotation = activeItem != null ? activeItem.transform.eulerAngles : Vector3.zero;
+        data.pendingSprayRemainingUses = activeItem != null ? activeItem.GetRemainingUses() : 0;
 
         BusPlayerController player = Object.FindFirstObjectByType<BusPlayerController>();
         data.isCarryingSprayDelivery = player != null && player.IsCarryingSprayItem();
+        data.carriedSprayRemainingUses = player != null ? player.GetCarriedSprayRemainingUses() : 0;
     }
 
     public void ApplySaveData(GameSaveData data)
@@ -148,11 +188,19 @@ public class SprayDeliveryManager : MonoBehaviour
             return;
 
         if (data.hasPendingSprayDelivery)
-            SpawnDeliveryItem(data.pendingSprayDeliveryPosition, Quaternion.Euler(data.pendingSprayDeliveryRotation), false);
+            SpawnDeliveryItem(
+                data.pendingSprayDeliveryPosition,
+                Quaternion.Euler(data.pendingSprayDeliveryRotation),
+                false,
+                data.pendingSprayRemainingUses > 0 ? data.pendingSprayRemainingUses : sprayUsesPerItem);
 
         if (data.isCarryingSprayDelivery)
         {
-            SprayDeliveryItem carriedItem = SpawnDeliveryItem(Vector3.zero, Quaternion.identity, false);
+            SprayDeliveryItem carriedItem = SpawnDeliveryItem(
+                Vector3.zero,
+                Quaternion.identity,
+                false,
+                data.carriedSprayRemainingUses > 0 ? data.carriedSprayRemainingUses : sprayUsesPerItem);
             BusPlayerController player = Object.FindFirstObjectByType<BusPlayerController>();
             if (player != null && carriedItem != null)
                 TryPickUpSpray(carriedItem, player);
@@ -178,7 +226,7 @@ public class SprayDeliveryManager : MonoBehaviour
             player.ClearCarriedSprayItem();
     }
 
-    SprayDeliveryItem SpawnDeliveryItem(Vector3 position, Quaternion rotation, bool armDropSound)
+    SprayDeliveryItem SpawnDeliveryItem(Vector3 position, Quaternion rotation, bool armDropSound, int remainingUses)
     {
         GameObject itemObject = new GameObject("SprayDeliveryItem");
         itemObject.transform.position = position;
@@ -188,12 +236,17 @@ public class SprayDeliveryManager : MonoBehaviour
         itemBody.mass = 1.1f;
         itemBody.angularDamping = 3.5f;
         itemBody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        itemObject.AddComponent<BusExteriorScrollObject>();
 
         BoxCollider itemCollider = itemObject.AddComponent<BoxCollider>();
         itemCollider.size = itemSize;
 
         SprayDeliveryItem item = itemObject.AddComponent<SprayDeliveryItem>();
-        item.Setup(GetSprayVisualPrefab(), sprayVisualLocalScale, sprayVisualLocalEuler);
+        item.Setup(
+            GetSprayVisualPrefab(),
+            sprayVisualLocalScale,
+            sprayVisualLocalEuler,
+            remainingUses > 0 ? remainingUses : sprayUsesPerItem);
         if (armDropSound)
             item.ArmDropSound();
 
@@ -253,7 +306,10 @@ public class SprayDeliveryManager : MonoBehaviour
             (forward * 1.1f) + (Vector3.up * 1.1f),
             (-forward * 0.95f),
             (right * 0.95f),
-            (-right * 0.95f)
+            (-right * 0.95f),
+            ((-forward + right * 0.35f).normalized * 0.95f),
+            ((-forward - right * 0.35f).normalized * 0.95f),
+            Vector3.zero
         };
 
         for (int i = 0; i < candidateOffsets.Length; i++)
@@ -270,6 +326,50 @@ public class SprayDeliveryManager : MonoBehaviour
         }
 
         position = basePosition;
+        return false;
+    }
+
+    bool TryGetCarriedDropPose(BusPlayerController player, out Vector3 position, out Quaternion rotation)
+    {
+        position = Vector3.zero;
+        rotation = Quaternion.identity;
+        if (player == null)
+            return false;
+
+        Transform anchor = player.transform;
+        rotation = Quaternion.Euler(0f, anchor.eulerAngles.y, 0f);
+        float floorHeight = Mathf.Max((itemSize.y * 0.5f) + dropSpacePadding, 0.35f);
+        Vector3 basePosition = anchor.position + Vector3.up * floorHeight;
+        Vector3 forward = Vector3.ProjectOnPlane(anchor.forward, Vector3.up).normalized;
+        Vector3 right = Vector3.ProjectOnPlane(anchor.right, Vector3.up).normalized;
+
+        if (forward.sqrMagnitude < 0.001f)
+            forward = Vector3.forward;
+
+        if (right.sqrMagnitude < 0.001f)
+            right = Vector3.right;
+
+        Vector3[] candidateOffsets =
+        {
+            (forward * carriedDropOffset.z) + (right * carriedDropOffset.x),
+            (forward * carriedDropOffset.z) - (right * carriedDropOffset.x),
+            forward * 0.42f,
+            (forward * 0.3f) + (right * 0.5f),
+            (forward * 0.3f) - (right * 0.5f),
+            right * 0.55f,
+            -right * 0.55f
+        };
+
+        for (int i = 0; i < candidateOffsets.Length; i++)
+        {
+            Vector3 candidate = basePosition + candidateOffsets[i];
+            if (!IsDropSpaceClear(candidate, rotation, player))
+                continue;
+
+            position = candidate;
+            return true;
+        }
+
         return false;
     }
 
