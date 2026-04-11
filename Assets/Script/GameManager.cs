@@ -51,6 +51,15 @@ public class GameManager : MonoBehaviour
 
     [Header("=== Debug ===")]
     public bool alwaysStartFreshInEditor = true;
+    public bool enableChaosScenarioHotkey = true;
+    public KeyCode chaosScenarioHotkey = KeyCode.F8;
+    public int chaosScenarioMoney = 3000;
+    public float chaosScenarioSettleDelay = 3.2f;
+    public float chaosScenarioBoardInterval = 0.12f;
+    public float chaosScenarioExitStartDelay = 0.55f;
+    public float chaosScenarioExitInterval = 0.45f;
+
+    bool isRunningChaosScenario = false;
 
     void Awake()
     {
@@ -61,6 +70,14 @@ public class GameManager : MonoBehaviour
     {
         if (summaryPanel != null) summaryPanel.SetActive(false);
         StartCoroutine(InitializeGameState());
+    }
+
+    void Update()
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (enableChaosScenarioHotkey && Input.GetKeyDown(chaosScenarioHotkey))
+            SetupChaosClipScenario();
+#endif
     }
 
     IEnumerator InitializeGameState()
@@ -134,6 +151,191 @@ public class GameManager : MonoBehaviour
     {
         float finalPopularity = Mathf.Clamp(popularity + permanentPopularityBonus, 0f, 100f);
         return finalPopularity / 20f;
+    }
+
+    [ContextMenu("Debug/Setup Chaos Clip Scenario")]
+    public void SetupChaosClipScenario()
+    {
+        if (!gameObject.activeInHierarchy || isRunningChaosScenario)
+            return;
+
+        StartCoroutine(SetupChaosClipScenarioRoutine());
+    }
+
+    IEnumerator SetupChaosClipScenarioRoutine()
+    {
+        isRunningChaosScenario = true;
+
+        if (PlayerWallet.Instance != null)
+            PlayerWallet.Instance.SetMoney(chaosScenarioMoney);
+
+        BusStopManager busStopManager = Object.FindFirstObjectByType<BusStopManager>();
+        if (busStopManager == null)
+        {
+            Debug.LogWarning("Chaos scenario: ไม่พบ BusStopManager");
+            isRunningChaosScenario = false;
+            yield break;
+        }
+
+        RandomEventManager.GetOrCreateInstance();
+
+        List<PassengerAI> spawnedPassengers = new List<PassengerAI>();
+        int safetyCounter = 64;
+        while (safetyCounter-- > 0)
+        {
+            PassengerAI passenger = busStopManager.SpawnPassenger();
+            if (passenger == null)
+                break;
+
+            spawnedPassengers.Add(passenger);
+        }
+
+        yield return StartCoroutine(BoardChaosPassengersRoutine(spawnedPassengers));
+        yield return StartCoroutine(WaitForChaosPassengersToSettle(spawnedPassengers));
+
+        List<PassengerAI> eligiblePassengers = GetChaosScenarioPassengers();
+        if (eligiblePassengers.Count == 0)
+        {
+            Debug.LogWarning("Chaos scenario: ยังไม่มีผู้โดยสารที่พร้อมสร้างฉาก");
+            isRunningChaosScenario = false;
+            yield break;
+        }
+
+        PassengerAI toxicPassenger = eligiblePassengers[0];
+        PassengerAI dancePassenger = eligiblePassengers.Count > 1 ? eligiblePassengers[1] : null;
+
+        PreparePassengerForChaosEvent(toxicPassenger);
+        toxicPassenger.DebugForceRandomEvent(PassengerAI.RandomEventType.ToxicSmell);
+
+        if (dancePassenger != null)
+        {
+            PreparePassengerForChaosEvent(dancePassenger);
+            dancePassenger.DebugForceRandomEvent(PassengerAI.RandomEventType.DrunkDance);
+        }
+
+        PrepareChaosExitPassengers(eligiblePassengers, toxicPassenger, dancePassenger);
+        yield return new WaitForSeconds(chaosScenarioExitStartDelay);
+        yield return StartCoroutine(TriggerChaosPassengerExits(eligiblePassengers, toxicPassenger, dancePassenger));
+
+        SaveSystem.SaveCurrentGame();
+        isRunningChaosScenario = false;
+    }
+
+    IEnumerator BoardChaosPassengersRoutine(List<PassengerAI> passengers)
+    {
+        float interval = Mathf.Max(0.02f, chaosScenarioBoardInterval);
+
+        for (int i = 0; i < passengers.Count; i++)
+        {
+            PassengerAI passenger = passengers[i];
+            if (passenger != null)
+                passenger.BoardBus();
+
+            yield return new WaitForSeconds(interval);
+        }
+    }
+
+    IEnumerator WaitForChaosPassengersToSettle(List<PassengerAI> passengers)
+    {
+        float timeout = Mathf.Max(0.5f, chaosScenarioSettleDelay);
+
+        while (timeout > 0f)
+        {
+            bool stillFindingSeat = false;
+
+            for (int i = 0; i < passengers.Count; i++)
+            {
+                PassengerAI passenger = passengers[i];
+                if (passenger == null)
+                    continue;
+
+                if (passenger.currentState == PassengerAI.State.Boarding ||
+                    passenger.currentState == PassengerAI.State.FindingSeat)
+                {
+                    stillFindingSeat = true;
+                    break;
+                }
+            }
+
+            if (!stillFindingSeat)
+                yield break;
+
+            timeout -= Time.deltaTime;
+            yield return null;
+        }
+    }
+
+    void PrepareChaosExitPassengers(List<PassengerAI> passengers, PassengerAI toxicPassenger, PassengerAI dancePassenger)
+    {
+        for (int i = 0; i < passengers.Count; i++)
+        {
+            PassengerAI passenger = passengers[i];
+            if (passenger == null || passenger == toxicPassenger || passenger == dancePassenger)
+                continue;
+
+            if (!IsPassengerReadyForChaos(passenger))
+                continue;
+
+            passenger.PrepareForDebugAngryExit();
+        }
+    }
+
+    IEnumerator TriggerChaosPassengerExits(List<PassengerAI> passengers, PassengerAI toxicPassenger, PassengerAI dancePassenger)
+    {
+        float interval = Mathf.Max(0.05f, chaosScenarioExitInterval);
+
+        for (int i = 0; i < passengers.Count; i++)
+        {
+            PassengerAI passenger = passengers[i];
+            if (passenger == null || passenger == toxicPassenger || passenger == dancePassenger)
+                continue;
+
+            if (!IsPassengerReadyForChaos(passenger))
+                continue;
+
+            passenger.TriggerExit();
+            yield return new WaitForSeconds(interval);
+        }
+    }
+
+    List<PassengerAI> GetChaosScenarioPassengers()
+    {
+        PassengerAI[] passengers = Object.FindObjectsByType<PassengerAI>(FindObjectsSortMode.None);
+        List<PassengerAI> result = new List<PassengerAI>();
+
+        for (int i = 0; i < passengers.Length; i++)
+        {
+            PassengerAI passenger = passengers[i];
+            if (passenger == null)
+                continue;
+
+            if (!IsPassengerReadyForChaos(passenger))
+                continue;
+
+            result.Add(passenger);
+        }
+
+        return result;
+    }
+
+    bool IsPassengerReadyForChaos(PassengerAI passenger)
+    {
+        if (passenger == null)
+            return false;
+
+        return passenger.currentState == PassengerAI.State.WaitingForFare ||
+               passenger.currentState == PassengerAI.State.HandExtended ||
+               passenger.currentState == PassengerAI.State.Paying ||
+               passenger.currentState == PassengerAI.State.Riding;
+    }
+
+    void PreparePassengerForChaosEvent(PassengerAI passenger)
+    {
+        if (passenger == null)
+            return;
+
+        if (passenger.currentState != PassengerAI.State.Riding)
+            passenger.PrepareForDebugRideState();
     }
 
     // ==========================================

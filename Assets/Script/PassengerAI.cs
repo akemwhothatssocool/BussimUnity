@@ -497,6 +497,25 @@ public class PassengerAI : MonoBehaviour, IInteractable
         // ✅ ไม่ต้อง StartCoroutine ใหม่ — RideAndGetOff() เริ่มไว้แล้วตั้งแต่นั่งลงที่นั่ง
     }
 
+    public void PrepareForDebugRideState()
+    {
+        hasPaidTicket = true;
+        isProcessingPayment = false;
+        currentState = State.Riding;
+        currentWaitTime = 0f;
+        CaptureSeatPose();
+        thoughtBubble?.HideImmediate();
+
+        if (moneyProp != null)
+            moneyProp.SetActive(false);
+    }
+
+    public void PrepareForDebugAngryExit()
+    {
+        PrepareForDebugRideState();
+        SetMood(Mood.Angry);
+    }
+
     // ===============================
     // 🌟 ระบบลงรถ + เช็กหนีตั๋ว
     // ===============================
